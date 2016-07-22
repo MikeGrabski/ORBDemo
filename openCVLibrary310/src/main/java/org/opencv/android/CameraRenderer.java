@@ -18,7 +18,7 @@ public class CameraRenderer extends CameraGLRendererBase {
     private Camera mCamera;
     private boolean mPreviewStarted = false;
 
-    CameraRenderer(CameraGLSurfaceView view) {
+    public CameraRenderer(CameraGLSurfaceView view) {
         super(view);
     }
 
