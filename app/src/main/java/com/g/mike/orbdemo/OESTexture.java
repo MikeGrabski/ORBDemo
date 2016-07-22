@@ -1,4 +1,4 @@
-package com.g.mike.orbdemo.gl;
+package com.g.mike.orbdemo;
 
 /**
  * Created by iosuser12 on 7/22/16.

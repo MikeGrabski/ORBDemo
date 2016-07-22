@@ -1,42 +1,44 @@
-package com.g.mike.orbdemo.gl;
+package com.g.mike.orbdemo;
 
 /**
  * Created by iosuser12 on 7/22/16.
  */
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.List;
+
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
-import android.annotation.SuppressLint;
 import android.content.Context;
-import android.content.res.Configuration;
 import android.graphics.SurfaceTexture;
+import android.hardware.Camera;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.opengl.Matrix;
-import android.util.AttributeSet;
-
-import com.g.mike.orbdemo.R;
-import com.g.mike.orbdemo.handlers.CameraHandler;
-import com.g.mike.orbdemo.iCamera;
 
 
 public class CameraRenderer extends GLSurfaceView implements GLSurfaceView.Renderer,
-        SurfaceTexture.OnFrameAvailableListener {
+        SurfaceTexture.OnFrameAvailableListener, Camera.PreviewCallback {
     private Context mContext;
     private SurfaceTexture mSurfaceTexture;
     private final OESTexture mCameraTexture = new OESTexture();
-    private  Shader defaultView = new Shader();
+    private Shader defaultView = new Shader();
     private int mWidth, mHeight;
     private boolean updateTexture = false;
     private ByteBuffer mFullQuadVertices;
     private float[] mTransformM = new float[16];
     private float[] mOrientationM = new float[16];
     private float[] mRatio = new float[2];
-    private CameraHandler iCam =new CameraHandler();
+    private Camera mCamera;
+    private Camera.Parameters params;
+    private byte[] data;
+    private boolean frameread = true;
 
     public CameraRenderer(Context context) {
         super(context);
         mContext = context;
+        mCamera = Camera.open();
+        mCamera.setPreviewCallback(this);
         final byte FULL_QUAD_COORDS[] = {-1, 1,
                 -1, -1,
                 1, 1,
@@ -72,32 +74,31 @@ public class CameraRenderer extends GLSurfaceView implements GLSurfaceView.Rende
     public synchronized void onSurfaceChanged(GL10 gl, int width, int height) {
         mWidth = width;
         mHeight= height;
-        setupSurfaceTexture();
-        iCam.releaseCamera();
-        setupCamera(width,height);
-    }
-
-    private void setupCamera(int width, int height) {
-        int camera_width =0;
-        int camera_height =0;
-        iCam.setupCamera(height,width,mSurfaceTexture);
-        camera_width=iCam.getWidth();
-        camera_height=iCam.getHeight();
-        Matrix.setRotateM(mOrientationM, 0, 90.0f, 0f, 0f, 1f);
-        mRatio[1] = camera_width*1.0f/height;
-        mRatio[0] = camera_height*1.0f/width;
-        iCam.setParameters();
-        iCam.startPreview();
-        requestRender();
-    }
-
-    private void setupSurfaceTexture(){
         SurfaceTexture oldSurfaceTexture = mSurfaceTexture;
         mSurfaceTexture = new SurfaceTexture(mCameraTexture.getTextureId());
         mSurfaceTexture.setOnFrameAvailableListener(this);
         if(oldSurfaceTexture != null){
             oldSurfaceTexture.release();
         }
+
+        int camera_width =0;
+        int camera_height =0;
+        try {
+            mCamera.setPreviewTexture(mSurfaceTexture);
+        } catch (IOException ioe) {
+            ioe.printStackTrace();
+        }
+        params = mCamera.getParameters();
+        params.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
+        mCamera.setParameters(params);
+        mCamera.setDisplayOrientation(0);
+
+        camera_width = params.getPreviewSize().width;
+        camera_height = params.getPreviewSize().height;
+        Matrix.setRotateM(mOrientationM, 0, 90.0f, 0f, 0f, 1f);
+        mRatio[1] = camera_width*1.0f/height;
+        mRatio[0] = camera_height*1.0f/width;
+        requestRender();
     }
 
     @Override
@@ -142,7 +143,50 @@ public class CameraRenderer extends GLSurfaceView implements GLSurfaceView.Rende
     @Override
     public void onPause() {
         super.onPause();
-        iCam.releaseCamera();
+        if (mCamera != null) {
+            mCamera.stopPreview();
+            mCamera.release();
+            mCamera = null;
+        }
+    }
+
+    @Override
+    public void onPreviewFrame(byte[] bytes, Camera camera) {
+        if(frameread == true) {
+            frameread = false;
+            data = bytes;
+            frameread = true;
+        }
+        data = bytes;
+
+    }
+
+    void startPreview() {
+        mCamera.startPreview();
+    }
+
+    byte[] getCurrentFrame() {
+        return data;
+    }
+
+    int getPreviewFormat() {
+        return mCamera.getParameters().getPreviewFormat();
+    }
+
+    int getPreviewHeight() { return mCamera.getParameters().getPreviewSize().height; }
+
+    int getPreviewWidth() {
+        return mCamera.getParameters().getPreviewSize().width;
+    }
+
+    List<Integer> getSupportedPreiewFormats(){
+        return mCamera.getParameters().getSupportedPreviewFormats();
+    }
+
+    void setPreviewFormat(int previewFormat){
+        Camera.Parameters params = mCamera.getParameters();
+        params.setPreviewFormat(previewFormat);
+        mCamera.setParameters(params);
     }
 
 
