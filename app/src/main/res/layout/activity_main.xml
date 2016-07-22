@@ -51,20 +51,24 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_weight="20"
-        android:orientation="horizontal"
+        android:orientation="vertical"
         android:id="@+id/resultLayout"
         android:layout_toRightOf="@+id/buttonLayout"
         android:layout_alignTop="@+id/buttonLayout"
-        android:background="#55ffffff">
-        <TextView
-            android:layout_width="156dp"
-            android:layout_height="50dp"
-            android:id="@+id/numOfMatches"
-            android:text="" />
-
+        android:background="#55ffffff"
+        android:layout_alignParentLeft="false"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentBottom="true">
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:id="@+id/numOfMatches"
+            android:text=""
+            android:visibility="visible" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
             android:id="@+id/averageTimePerFrame"
             android:text=""
             android:layout_alignParentBottom="true"

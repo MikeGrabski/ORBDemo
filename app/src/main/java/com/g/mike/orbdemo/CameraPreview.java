@@ -24,7 +24,6 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         super(context);
         frameread = true;
 
-
         mCamera = Camera.open();
         params = mCamera.getParameters();
         params.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
