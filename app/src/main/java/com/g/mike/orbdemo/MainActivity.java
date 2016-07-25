@@ -121,6 +121,10 @@ public class MainActivity extends Activity {
             Toast.makeText(getApplicationContext(),"Please Capture First!",Toast.LENGTH_SHORT).show();
             return;
         }
+        if(averageTimePerFrameTextView.getVisibility() == Button.VISIBLE) {
+            averageTimePerFrameTextView.setVisibility(Button.GONE);
+        }
+        numOfMatches.setVisibility(Button.VISIBLE);
         startTracking.setVisibility(Button.GONE);
         stopTracking.setVisibility(Button.VISIBLE);
         MatchImages matchImages = new MatchImages();
@@ -129,6 +133,8 @@ public class MainActivity extends Activity {
     private void stopTracking() {
 
         stopTrackingNow = true;
+        numOfMatches.setVisibility(Button.GONE);
+        averageTimePerFrameTextView.setVisibility(Button.VISIBLE);
         averageTimePerFrameTextView.setText("Avg Time per Frame: "+(double)elapsedTime / (double)frameCount + " ms");
         stopTracking.setVisibility(Button.GONE);
 
