@@ -32,6 +32,8 @@ public class MainActivity extends Activity {
     FrameLayout cameraView;
     TextView numOfMatches;
     TextView averageTimePerFrameTextView;
+    TextView numOfFeatures;
+    TextView messages;
 
     //CameraPreview
     CameraRenderer cameraPreview;
@@ -44,6 +46,9 @@ public class MainActivity extends Activity {
 
     FeatureDetector detector;
     DescriptorExtractor descriptor;
+
+    //Total number of features detected in the captured image
+    int featuresnumber;
 
     //Total number of mathces per 2 images
     int matchnumber;
@@ -65,6 +70,7 @@ public class MainActivity extends Activity {
     private int frameCount= 0;
 
     private static final String TAG = "MainActivity";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         if(!OpenCVLoader.initDebug()){
@@ -80,6 +86,9 @@ public class MainActivity extends Activity {
         stopTracking = (Button)findViewById(R.id.stopTracking);
         cameraView = (FrameLayout)findViewById(R.id.cameraView);
         numOfMatches = (TextView)findViewById(R.id.numOfMatches);
+        numOfFeatures = (TextView)findViewById(R.id.numOfFeatures);
+        messages = (TextView)findViewById(R.id.messages);
+        messages.setText("Please, capture a reference photo.");
         averageTimePerFrameTextView = (TextView)findViewById(R.id.averageTimePerFrame);
         cameraPreview = new CameraRenderer(getApplicationContext());
         capture.setOnClickListener(new View.OnClickListener() {
@@ -134,6 +143,7 @@ public class MainActivity extends Activity {
 
         stopTrackingNow = true;
         numOfMatches.setVisibility(Button.GONE);
+        numOfFeatures.setVisibility(Button.GONE);
         averageTimePerFrameTextView.setVisibility(Button.VISIBLE);
         averageTimePerFrameTextView.setText("Avg Time per Frame: "+(double)elapsedTime / (double)frameCount + " ms");
         stopTracking.setVisibility(Button.GONE);
@@ -145,9 +155,13 @@ public class MainActivity extends Activity {
 
     private void capture() {
 
+        averageTimePerFrameTextView.setVisibility(Button.GONE);
+
+        messages.setText("Start tracking!");
+
         detector = FeatureDetector.create(FeatureDetector.ORB);
         descriptor = DescriptorExtractor.create(DescriptorExtractor.ORB);;
-        matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMINGLUT);
+        matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);
 
         width = cameraPreview.getPreviewWidth();
         height = cameraPreview.getPreviewHeight();
@@ -169,6 +183,21 @@ public class MainActivity extends Activity {
         descriptor.compute(img1, keypoints1, descriptors1);
         startTracking.setVisibility(Button.VISIBLE);
         capture.setVisibility(Button.GONE);
+
+        //counting the number of features in the original captured photo
+        MatOfDMatch features = new MatOfDMatch();
+        matcher.match(descriptors1, descriptors1, features);
+        List<DMatch> featuresList = features.toList();
+        List<DMatch> features_final= new ArrayList<DMatch>();
+        int count = 0;
+        for(int i=0; i<featuresList.size(); i++) {
+                features_final.add(features.toList().get(i));
+                count++;
+        }
+        featuresnumber = count;
+
+        numOfFeatures.setVisibility(Button.VISIBLE);
+        numOfFeatures.setText("Number of features: " + featuresnumber);
     }
     //change
     private class MatchImages extends AsyncTask<Void,Void,Integer>{
@@ -183,7 +212,7 @@ public class MainActivity extends Activity {
         @Override
         protected void onPostExecute(Integer integer) {
             super.onPostExecute(integer);
-            numOfMatches.setText("NumOfMatches: " + matchnumber);
+            //numOfMatches.setText("NumOfMatches: " + matchnumber);
         }
     }
     public void matchImages(){
@@ -202,7 +231,7 @@ public class MainActivity extends Activity {
             matcher.match(descriptors1, descriptors2, matches);
 
 
-            int DIST_LIMIT = 60;
+            int DIST_LIMIT = 70;
             List<DMatch> matchesList = matches.toList();
             List<DMatch> matches_final= new ArrayList<DMatch>();
             int count = 0;
@@ -220,7 +249,15 @@ public class MainActivity extends Activity {
                 @Override
                 public void run() {
                     numOfMatches.setText("Number of Matches: "+matchnumber);
-
+                    if(matchnumber > featuresnumber*5/10) {
+                        if(matchnumber > featuresnumber*7/10) {
+                            messages.setText("VERY CLOSE!");
+                        } else {
+                            messages.setText("CLOSE!");
+                        }
+                    } else {
+                        messages.setText("NOT CLOSE!");
+                    }
                 }
             });
 
@@ -232,6 +269,12 @@ public class MainActivity extends Activity {
             }
         }
 
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        cameraPreview.stopCamera();
     }
 }
 

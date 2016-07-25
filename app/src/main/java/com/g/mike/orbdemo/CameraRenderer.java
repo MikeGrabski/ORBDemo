@@ -165,6 +165,10 @@ public class CameraRenderer extends GLSurfaceView implements GLSurfaceView.Rende
         mCamera.startPreview();
     }
 
+    void stopCamera() {
+        mCamera.release();
+    }
+
     byte[] getCurrentFrame() {
         return data;
     }
