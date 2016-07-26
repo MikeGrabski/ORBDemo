@@ -11,7 +11,7 @@ import android.opengl.GLES20;
  * which is updated to the most recent camera frame image when requested.
  * @author yulu
  *
- */
+*/
 public class OESTexture {
     private int mTextureHandle;
 

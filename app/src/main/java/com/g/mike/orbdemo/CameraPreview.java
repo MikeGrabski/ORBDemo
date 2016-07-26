@@ -5,6 +5,8 @@ package com.g.mike.orbdemo;
  */
 import android.app.ActionBar;
 import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.Color;
 import android.hardware.Camera;
 import android.util.Log;
 import android.view.SurfaceHolder;
@@ -44,6 +46,9 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         } catch (IOException e) {
             Log.d("CameraPreview", "Error setting camera preview: " + e.getMessage());
         }
+//        Canvas canvas = holder.lockCanvas();
+//        canvas.drawColor(Color.RED);
+//        holder.unlockCanvasAndPost(canvas);
     }
 
     @Override

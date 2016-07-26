@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.graphics.ImageFormat;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.FrameLayout;
@@ -51,7 +50,7 @@ public class MainActivity extends Activity {
     int featuresnumber;
 
     //Total number of mathces per 2 images
-    int matchnumber;
+    int matchnumber = 0;
 
     //1st image descriptors and keyfeatures
     DescriptorMatcher matcher;
@@ -66,31 +65,57 @@ public class MainActivity extends Activity {
 
     //needed for time measuring
     private boolean stopTrackingNow = false;
-    private long elapsedTime=0;
+    private long elapsedTime = 0;
     private int frameCount= 0;
 
-    private static final String TAG = "MainActivity";
+    MatOfDMatch features;
+    MatOfDMatch matches;
+
+    int count;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        if(!OpenCVLoader.initDebug()){
-                Log.d(TAG, "OpenCV not loaded");
-        } else {
-            Log.d(TAG, "OpenCV loaded");
-        }
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        matchnumber = 0;
+
+        OpenCVLoader.initDebug();
+
         capture = (Button)findViewById(R.id.captureFrame);
         startTracking  = (Button)findViewById(R.id.startTracking);
         stopTracking = (Button)findViewById(R.id.stopTracking);
+
         cameraView = (FrameLayout)findViewById(R.id.cameraView);
-        numOfMatches = (TextView)findViewById(R.id.numOfMatches);
-        numOfFeatures = (TextView)findViewById(R.id.numOfFeatures);
-        messages = (TextView)findViewById(R.id.messages);
-        messages.setText("Please, capture a reference photo.");
-        averageTimePerFrameTextView = (TextView)findViewById(R.id.averageTimePerFrame);
         cameraPreview = new CameraRenderer(getApplicationContext());
+        width = cameraPreview.getPreviewWidth();
+        height = cameraPreview.getPreviewHeight();
+
+        messages = (TextView)findViewById(R.id.messages);
+        numOfFeatures = (TextView)findViewById(R.id.numOfFeatures);
+        numOfMatches = (TextView)findViewById(R.id.numOfMatches);
+        averageTimePerFrameTextView = (TextView)findViewById(R.id.averageTimePerFrame);
+
+        detector = FeatureDetector.create(FeatureDetector.ORB);
+        descriptor = DescriptorExtractor.create(DescriptorExtractor.ORB);;
+        matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);
+
+        img1 = new Mat(width, height, CvType.CV_8UC3);
+        img2 = new Mat(width, height, CvType.CV_8UC3);
+        descriptors1 = new Mat();
+        descriptors2 = new Mat();
+        keypoints1 = new MatOfKeyPoint();
+        keypoints2 = new MatOfKeyPoint();
+        features = new MatOfDMatch();
+        matches = new MatOfDMatch();
+
+        setPreviewFormat();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        messages.setText("Please, capture a reference photo.");
+        cameraView.addView(cameraPreview);
+        cameraPreview.startPreview();
         capture.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -109,10 +134,8 @@ public class MainActivity extends Activity {
                 stopTracking();
             }
         });
-        setPreviewFormat();
-        cameraView.addView(cameraPreview);
-        cameraPreview.startPreview();
     }
+
     private void setPreviewFormat(){
         List<Integer> format = cameraPreview.getSupportedPreiewFormats();
         for (int i = 0; i < format.size(); i++){
@@ -124,97 +147,64 @@ public class MainActivity extends Activity {
             Toast.makeText(getApplicationContext(),"Your phone not supported yet", Toast.LENGTH_LONG).show();
         cameraPreview.setPreviewFormat(previewFormat);
     }
+
     private void startTracking() {
-        if(currentPhoto==null)
-        {
-            Toast.makeText(getApplicationContext(),"Please Capture First!",Toast.LENGTH_SHORT).show();
-            return;
-        }
         if(averageTimePerFrameTextView.getVisibility() == Button.VISIBLE) {
             averageTimePerFrameTextView.setVisibility(Button.GONE);
         }
         numOfMatches.setVisibility(Button.VISIBLE);
         startTracking.setVisibility(Button.GONE);
         stopTracking.setVisibility(Button.VISIBLE);
-        MatchImages matchImages = new MatchImages();
-        matchImages.execute();
+        new AsyncTask<Void,Void,Integer>(){
+            @Override
+            protected Integer doInBackground(Void... voids) {
+                matchImages();
+                return  null;
+            }
+        }.execute();
     }
     private void stopTracking() {
+
+        messages.setText("Tracking stopped!");
 
         stopTrackingNow = true;
         numOfMatches.setVisibility(Button.GONE);
         numOfFeatures.setVisibility(Button.GONE);
+        stopTracking.setVisibility(Button.GONE);
+        capture.setVisibility(Button.VISIBLE);
         averageTimePerFrameTextView.setVisibility(Button.VISIBLE);
         averageTimePerFrameTextView.setText("Avg Time per Frame: "+(double)elapsedTime / (double)frameCount + " ms");
-        stopTracking.setVisibility(Button.GONE);
-
-        capture.setVisibility(Button.VISIBLE);
         elapsedTime = 0;
         frameCount = 0;
     }
 
     private void capture() {
 
-        averageTimePerFrameTextView.setVisibility(Button.GONE);
-
         messages.setText("Start tracking!");
 
-        detector = FeatureDetector.create(FeatureDetector.ORB);
-        descriptor = DescriptorExtractor.create(DescriptorExtractor.ORB);;
-        matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);
+        capture.setVisibility(Button.GONE);
+        averageTimePerFrameTextView.setVisibility(Button.GONE);
+        startTracking.setVisibility(Button.VISIBLE);
+        numOfFeatures.setVisibility(Button.VISIBLE);
 
-        width = cameraPreview.getPreviewWidth();
-        height = cameraPreview.getPreviewHeight();
-        //first image
         currentPhoto = cameraPreview.getCurrentFrame();
-
-        img1 = new Mat(width, height, CvType.CV_8UC3);
         img1.put(0,0,currentPhoto);
-        descriptors1 = new Mat();
-
-        img2 = new Mat(width, height, CvType.CV_8UC3);
-        descriptors2 = new Mat();
-        keypoints2 = new MatOfKeyPoint();
-
-
-        keypoints1 = new MatOfKeyPoint();
-
         detector.detect(img1, keypoints1);
         descriptor.compute(img1, keypoints1, descriptors1);
-        startTracking.setVisibility(Button.VISIBLE);
-        capture.setVisibility(Button.GONE);
 
         //counting the number of features in the original captured photo
-        MatOfDMatch features = new MatOfDMatch();
         matcher.match(descriptors1, descriptors1, features);
         List<DMatch> featuresList = features.toList();
         List<DMatch> features_final= new ArrayList<DMatch>();
-        int count = 0;
+        count = 0;
         for(int i=0; i<featuresList.size(); i++) {
                 features_final.add(features.toList().get(i));
                 count++;
         }
         featuresnumber = count;
-
-        numOfFeatures.setVisibility(Button.VISIBLE);
         numOfFeatures.setText("Number of features: " + featuresnumber);
     }
-    //change
-    private class MatchImages extends AsyncTask<Void,Void,Integer>{
 
-        @Override
-        protected Integer doInBackground(Void... voids) {
-
-            matchImages();
-            return  null;
-        }
-
-        @Override
-        protected void onPostExecute(Integer integer) {
-            super.onPostExecute(integer);
-            //numOfMatches.setText("NumOfMatches: " + matchnumber);
-        }
-    }
     public void matchImages(){
         while(true) {
             if(stopTrackingNow) {
@@ -227,15 +217,13 @@ public class MainActivity extends Activity {
             detector.detect(img2, keypoints2);
             descriptor.compute(img2, keypoints2, descriptors2);
             //matcher should include 2 different image's descriptors
-            MatOfDMatch matches = new MatOfDMatch();
             matcher.match(descriptors1, descriptors2, matches);
 
-
-            int DIST_LIMIT = 70;
+            int DIST_LIMIT = 60;
             List<DMatch> matchesList = matches.toList();
             List<DMatch> matches_final= new ArrayList<DMatch>();
-            int count = 0;
-            for(int i=0; i<matchesList.size(); i++) {
+            count = 0;
+            for(int i = 0; i < matchesList.size(); i++) {
                 if (matchesList.get(i).distance <= DIST_LIMIT) {
                     matches_final.add(matches.toList().get(i));
                     count++;
@@ -261,7 +249,6 @@ public class MainActivity extends Activity {
                 }
             });
 
-
             try {
                 Thread.sleep(10);
             } catch (InterruptedException e) {
@@ -272,9 +259,15 @@ public class MainActivity extends Activity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        //cameraPreview.onResume();
+    }
+
+    @Override
     protected void onPause() {
         super.onPause();
-        cameraPreview.stopCamera();
+        //cameraPreview.onPause();
     }
 }
 
