@@ -27,6 +27,7 @@ import android.opengl.GLES11Ext;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.opengl.Matrix;
+import android.util.Log;
 
 
 public class CameraRenderer extends GLSurfaceView implements GLSurfaceView.Renderer,
@@ -86,14 +87,12 @@ public class CameraRenderer extends GLSurfaceView implements GLSurfaceView.Rende
 
     @Override
     public synchronized void onSurfaceChanged(GL10 gl, int width, int height) {
+        Log.d("asdf", "onSurfaceChanged: ");
+
         mWidth = width;
         mHeight= height;
-        SurfaceTexture oldSurfaceTexture = mSurfaceTexture;
         mSurfaceTexture = new SurfaceTexture(mCameraTexture.getTextureId());
         mSurfaceTexture.setOnFrameAvailableListener(this);
-        if(oldSurfaceTexture != null){
-            oldSurfaceTexture.release();
-        }
 
         int camera_width = 0;
         int camera_height = 0;
