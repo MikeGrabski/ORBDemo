@@ -94,7 +94,7 @@ public class Shader {
         return res;
     }
 
-    private int loadShader(int shaderType, String source)throws Exception{
+    public int loadShader(int shaderType, String source)throws Exception{
         int shader = GLES20.glCreateShader(shaderType);
         if(shader != 0){
             GLES20.glShaderSource(shader, source);

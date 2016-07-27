@@ -24,7 +24,7 @@ public class CameraRenderer extends GLSurfaceView implements GLSurfaceView.Rende
         SurfaceTexture.OnFrameAvailableListener, Camera.PreviewCallback {
     private Context mContext;
     private SurfaceTexture mSurfaceTexture;
-    private final OESTexture mCameraTexture = new OESTexture();
+    //private final OESTexture mCameraTexture = new OESTexture();
     private Shader defaultView = new Shader();
     private int mWidth, mHeight;
     private ByteBuffer mFullQuadVertices;
@@ -36,6 +36,7 @@ public class CameraRenderer extends GLSurfaceView implements GLSurfaceView.Rende
     private byte[] data;
     private boolean frameread = true;
     private Triangle triangle;
+    private int mTextureHandle;
 
     public CameraRenderer(Context context) {
         super(context);
@@ -72,7 +73,15 @@ public class CameraRenderer extends GLSurfaceView implements GLSurfaceView.Rende
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-        mCameraTexture.init();
+        //mCameraTexture.init();
+        int[] mTextureHandles = new int[1];
+        GLES20.glGenTextures(1, mTextureHandles, 0);
+        mTextureHandle = mTextureHandles[0];
+        GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, mTextureHandles[0]);
+//        GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
+//        GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE);
+//        GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR);
+//        GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
     }
 
     @Override
@@ -80,7 +89,8 @@ public class CameraRenderer extends GLSurfaceView implements GLSurfaceView.Rende
 
         mWidth = width;
         mHeight= height;
-        mSurfaceTexture = new SurfaceTexture(mCameraTexture.getTextureId());
+        //mSurfaceTexture = new SurfaceTexture(mCameraTexture.getTextureId());
+        mSurfaceTexture = new SurfaceTexture(mTextureHandle);
         mSurfaceTexture.setOnFrameAvailableListener(this);
 
         int camera_width = 0;
@@ -109,7 +119,7 @@ public class CameraRenderer extends GLSurfaceView implements GLSurfaceView.Rende
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
         defaultView();
         gl.glTranslatef(0.0f, 0.0f, -5.0f);
-        triangle.draw(gl);
+        triangle.draw();
     }
 
     private void defaultView(){
@@ -129,7 +139,8 @@ public class CameraRenderer extends GLSurfaceView implements GLSurfaceView.Rende
         GLES20.glUniformMatrix4fv(uOrientationM, 1, false, mOrientationM, 0);
         GLES20.glUniform2fv(uRatioV, 1, mRatio, 0);
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-        GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, mCameraTexture.getTextureId());
+        //GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, mCameraTexture.getTextureId());
+        GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, mTextureHandle);
         GLES20.glVertexAttribPointer(aPosition, 2, GLES20.GL_BYTE, false, 0, mFullQuadVertices);
         GLES20.glEnableVertexAttribArray(aPosition);
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
@@ -183,6 +194,4 @@ public class CameraRenderer extends GLSurfaceView implements GLSurfaceView.Rende
         params.setPreviewFormat(previewFormat);
         mCamera.setParameters(params);
     }
-
-
 }

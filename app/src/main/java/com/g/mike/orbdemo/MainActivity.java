@@ -26,6 +26,9 @@ import java.util.List;
 import static org.opencv.imgproc.Imgproc.resize;
 
 public class MainActivity extends Activity {
+    //CameraPreview
+    Preview1 cameraPreview;
+
     //UI stuff
     Button capture;
     Button startTracking;
@@ -35,9 +38,6 @@ public class MainActivity extends Activity {
     TextView averageTimePerFrameTextView;
     TextView numOfFeatures;
     TextView messages;
-
-    //CameraPreview
-    CameraRenderer cameraPreview;
 
     //Needed for matching
     byte[] currentPhoto;
@@ -87,7 +87,7 @@ public class MainActivity extends Activity {
         stopTracking = (Button)findViewById(R.id.stopTracking);
 
         cameraView = (FrameLayout)findViewById(R.id.cameraView);
-        cameraPreview = new CameraRenderer(getApplicationContext());
+        cameraPreview = new Preview1(getApplicationContext());
         width = cameraPreview.getPreviewWidth();
         height = cameraPreview.getPreviewHeight();
 
@@ -191,7 +191,7 @@ public class MainActivity extends Activity {
 
         currentPhoto = cameraPreview.getCurrentFrame();
         img1.put(0,0,currentPhoto);
-        resize(img1, img1, img1.size(), 0.00001, 0.00001, 1);
+        resize(img1, img1, img1.size(), 0.0000001, 0.0000001, 1);
         detector.detect(img1, keypoints1);
         descriptor.compute(img1, keypoints1, descriptors1);
 
@@ -217,7 +217,7 @@ public class MainActivity extends Activity {
             long startTime = System.currentTimeMillis();
             byte[] data = cameraPreview.getCurrentFrame();
             img2.put(0, 0, data);
-            resize(img2, img2, img2.size(), 0.00001, 0.00001, 1);
+            resize(img2, img2, img2.size(), 0.0000001, 0.0000001, 1);
             detector.detect(img2, keypoints2);
             descriptor.compute(img2, keypoints2, descriptors2);
             //matcher should include 2 different image's descriptors
