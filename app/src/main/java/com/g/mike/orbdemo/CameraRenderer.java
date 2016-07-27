@@ -3,25 +3,15 @@ package com.g.mike.orbdemo;
 /**
  * Created by iosuser12 on 7/22/16.
  */
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
+
 import java.io.IOException;
-import java.io.OutputStream;
-import java.math.MathContext;
 import java.nio.ByteBuffer;
 import java.util.List;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 import android.content.Context;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.ImageFormat;
-import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
-import android.graphics.YuvImage;
 import android.hardware.Camera;
 import android.opengl.GLES11Ext;
 import android.opengl.GLES20;
@@ -87,7 +77,6 @@ public class CameraRenderer extends GLSurfaceView implements GLSurfaceView.Rende
 
     @Override
     public synchronized void onSurfaceChanged(GL10 gl, int width, int height) {
-        Log.d("asdf", "onSurfaceChanged: ");
 
         mWidth = width;
         mHeight= height;
@@ -134,17 +123,13 @@ public class CameraRenderer extends GLSurfaceView implements GLSurfaceView.Rende
         int uTransformM = defaultView.getHandle("uTransformM");
         int uOrientationM = defaultView.getHandle("uOrientationM");
         int uRatioV = defaultView.getHandle("ratios");
+        int aPosition = defaultView.getHandle("aPosition");
 
         GLES20.glUniformMatrix4fv(uTransformM, 1, false, mTransformM, 0);
         GLES20.glUniformMatrix4fv(uOrientationM, 1, false, mOrientationM, 0);
         GLES20.glUniform2fv(uRatioV, 1, mRatio, 0);
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
         GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, mCameraTexture.getTextureId());
-
-        renderQuad(defaultView.getHandle("aPosition"));
-    }
-
-    private void renderQuad(int aPosition){
         GLES20.glVertexAttribPointer(aPosition, 2, GLES20.GL_BYTE, false, 0, mFullQuadVertices);
         GLES20.glEnableVertexAttribArray(aPosition);
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
@@ -173,29 +158,6 @@ public class CameraRenderer extends GLSurfaceView implements GLSurfaceView.Rende
             data = bytes;
             frameread = true;
         }
-
-//        //method2:
-//        int width = mCamera.getParameters().getPreviewSize().width;
-//        int height = mCamera.getParameters().getPreviewSize().height;
-//        YuvImage yuvImage = new YuvImage(bytes, ImageFormat.NV21, width, height, null);
-//        ByteArrayOutputStream os = new ByteArrayOutputStream();
-//        yuvImage.compressToJpeg(new Rect(0, 0, width, height), 100, os);
-//        byte[] jpegByteArray = os.toByteArray();
-//        Bitmap original = BitmapFactory.decodeByteArray(jpegByteArray, 0, jpegByteArray.length);
-//        Bitmap resized = Bitmap.createScaledBitmap(original, original.getWidth()/100, original.getHeight()/100, true);
-//        ByteArrayOutputStream blob = new ByteArrayOutputStream();
-//        resized.compress(Bitmap.CompressFormat.JPEG, 100, blob);
-//        data = blob.toByteArray();
-
-//        if(frameread == true) {
-//            frameread = false;
-//            Bitmap original = BitmapFactory.decodeByteArray(bytes , 0, bytes.length);
-//            Bitmap resized = Bitmap.createScaledBitmap(original, original.getWidth()/100, original.getHeight()/100, true);
-//            ByteArrayOutputStream blob = new ByteArrayOutputStream();
-//            resized.compress(Bitmap.CompressFormat.JPEG, 100, blob);
-//            data = blob.toByteArray();
-//            frameread = true;
-//        }     //returns null bitmap as the byte array was not in jpeg format
     }
 
     void startPreview() {
