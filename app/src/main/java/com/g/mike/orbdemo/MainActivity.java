@@ -229,7 +229,7 @@ public class MainActivity extends Activity {
             //matcher should include 2 different image's descriptors
             matcher.match(descriptors1, descriptors2, matches);
 
-            int DIST_LIMIT = 20;
+            int DIST_LIMIT = 30;
             List<DMatch> matchesList = matches.toList();
             List<DMatch> matches_final= new ArrayList<DMatch>();
             count = 0;
