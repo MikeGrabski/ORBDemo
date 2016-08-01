@@ -13,15 +13,12 @@ import android.view.ViewGroup;
  */
 public class MyCustomView extends View {
 
-    private Canvas canvas2;
-    private Bitmap backingBitmap;
     private Paint paint;
+    boolean drawingState;
 
     public MyCustomView(Context context) {
         super(context);
-        this.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        backingBitmap = Bitmap.createBitmap(100, 100, Bitmap.Config.ARGB_8888);
-        canvas2 = new Canvas(backingBitmap);
+        setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         paint = new Paint();
         paint.setARGB(255, 255, 0, 0);
     }
@@ -29,9 +26,12 @@ public class MyCustomView extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        canvas.drawCircle(10, 10, 10, paint);
-        canvas2.drawCircle(25, 25, 25, paint);
-        canvas.drawBitmap(backingBitmap, 200, 90, paint);
-        Log.d("MyCustomView", "onDraw: ondraw called");
+        if(drawingState) {
+            canvas.drawCircle(300, 300, 10, paint);
+        }
+    }
+
+    void setDrawingState(boolean state) {
+        drawingState = state;
     }
 }

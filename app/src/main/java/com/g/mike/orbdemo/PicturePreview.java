@@ -13,15 +13,15 @@ import android.view.ViewGroup;
  * Created by iosuser11 on 8/1/16.
  */
 public class PicturePreview extends SurfaceView {
+
     Paint paint;
     boolean drawingState;
     SurfaceHolder mHolder;
 
     public PicturePreview(Context context) {
         super(context);
-        setZOrderMediaOverlay(true);
-        //setColorFormat(TRANSLUCENT);
         setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        setZOrderMediaOverlay(true);
         mHolder = getHolder();
         mHolder.setFormat(PixelFormat.TRANSLUCENT);
         paint = new Paint();
@@ -34,8 +34,7 @@ public class PicturePreview extends SurfaceView {
         super.onDraw(canvas);
         if(drawingState) {
             canvas.drawColor(0, android.graphics.PorterDuff.Mode.CLEAR);
-            //canvas.drawCircle(10, 10, 10, paint);
-            canvas.drawColor(Color.RED);
+            canvas.drawCircle(10, 10, 10, paint);
         }
     }
 

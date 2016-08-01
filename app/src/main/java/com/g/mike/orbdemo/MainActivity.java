@@ -32,7 +32,7 @@ import static org.opencv.imgproc.Imgproc.resize;
 public class MainActivity extends Activity {
     //CameraPreview
     CameraPreview cameraPreview;
-    PicturePreview picturePreview;
+    MyCustomView picturePreview;
 
     //UI stuff
     Button capture;
@@ -93,7 +93,7 @@ public class MainActivity extends Activity {
 
         cameraView = (RelativeLayout)findViewById(R.id.cameraView);
         cameraPreview = new CameraPreview(getApplicationContext());
-        picturePreview = new PicturePreview(getApplicationContext());
+        picturePreview = new MyCustomView(getApplicationContext());
         width = cameraPreview.getPreviewWidth();
         height = cameraPreview.getPreviewHeight();
 
@@ -250,12 +250,14 @@ public class MainActivity extends Activity {
                     if(matchnumber > featuresnumber*0/10) {
                         if(matchnumber > featuresnumber*0/10) {
                             messages.setText("VERY CLOSE!");
+                            picturePreview.invalidate();
                             picturePreview.setDrawingState(true);
                         } else {
                             messages.setText("CLOSE!");
                         }
                     } else {
                         messages.setText("NOT CLOSE!");
+                        picturePreview.invalidate();
                         picturePreview.setDrawingState(false);
                     }
                 }
