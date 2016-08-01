@@ -198,9 +198,6 @@ public class MainActivity extends Activity {
 
         currentPhoto = cameraPreview.getCurrentFrame();
         img1.put(0,0,currentPhoto);
-        Mat resizedimg1 = new Mat();
-        Imgproc.resize(img1,resizedimg1,new Size(640,480));
-        img1=resizedimg1;
         detector.detect(img1, keypoints1);
         descriptor.compute(img1, keypoints1, descriptors1);
 
@@ -210,12 +207,11 @@ public class MainActivity extends Activity {
         List<DMatch> features_final= new ArrayList<DMatch>();
         count = 0;
         for(int i=0; i<featuresList.size(); i++) {
-                features_final.add(features.toList().get(i));
-                count++;
+            features_final.add(features.toList().get(i));
+            count++;
         }
         featuresnumber = count;
         numOfFeatures.setText("Number of features: " + featuresnumber);
-        Log.d("Img1:", "Size is: " + img1.size().height + "x" + img1.size().width);
     }
 
     public void matchImages(){
@@ -227,9 +223,6 @@ public class MainActivity extends Activity {
             long startTime = System.currentTimeMillis();
             byte[] data = cameraPreview.getCurrentFrame();
             img2.put(0, 0, data);
-            Mat resizedimg2 = new Mat();
-            Imgproc.resize(img2,resizedimg2,new Size(640,480));
-            img2 = resizedimg2;
             //resize(img2, img2, img2.size(), 0, 0, 1);
             detector.detect(img2, keypoints2);
             descriptor.compute(img2, keypoints2, descriptors2);
@@ -275,7 +268,6 @@ public class MainActivity extends Activity {
             }
         }
 
-        Log.d("Img2:", "Size is: " + img2.size().height + "x" + img2.size().width);
     }
 
     @Override
