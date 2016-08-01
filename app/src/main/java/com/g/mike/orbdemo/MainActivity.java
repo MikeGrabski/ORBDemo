@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.FrameLayout;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -27,13 +28,14 @@ import static org.opencv.imgproc.Imgproc.resize;
 
 public class MainActivity extends Activity {
     //CameraPreview
-    Preview1 cameraPreview;
+    CameraPreview cameraPreview;
+    MyCustomView myCustomView;
 
     //UI stuff
     Button capture;
     Button startTracking;
     Button stopTracking;
-    FrameLayout cameraView;
+    RelativeLayout cameraView;
     TextView numOfMatches;
     TextView averageTimePerFrameTextView;
     TextView numOfFeatures;
@@ -86,8 +88,9 @@ public class MainActivity extends Activity {
         startTracking  = (Button)findViewById(R.id.startTracking);
         stopTracking = (Button)findViewById(R.id.stopTracking);
 
-        cameraView = (FrameLayout)findViewById(R.id.cameraView);
-        cameraPreview = new Preview1(getApplicationContext());
+        cameraView = (RelativeLayout)findViewById(R.id.cameraView);
+        cameraPreview = new CameraPreview(getApplicationContext());
+        myCustomView = new MyCustomView(getApplicationContext());
         width = cameraPreview.getPreviewWidth();
         height = cameraPreview.getPreviewHeight();
 
@@ -117,6 +120,7 @@ public class MainActivity extends Activity {
         super.onStart();
         messages.setText("Please, capture a reference photo.");
         cameraView.addView(cameraPreview);
+        cameraView.addView(myCustomView);
         cameraPreview.startPreview();
         capture.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -191,7 +195,7 @@ public class MainActivity extends Activity {
 
         currentPhoto = cameraPreview.getCurrentFrame();
         img1.put(0,0,currentPhoto);
-        resize(img1, img1, img1.size(), 0.0000001, 0.0000001, 1);
+        resize(img1, img1, img1.size(), 0, 0, 1);
         detector.detect(img1, keypoints1);
         descriptor.compute(img1, keypoints1, descriptors1);
 
@@ -217,13 +221,13 @@ public class MainActivity extends Activity {
             long startTime = System.currentTimeMillis();
             byte[] data = cameraPreview.getCurrentFrame();
             img2.put(0, 0, data);
-            resize(img2, img2, img2.size(), 0.0000001, 0.0000001, 1);
+            resize(img2, img2, img2.size(), 0, 0, 1);
             detector.detect(img2, keypoints2);
             descriptor.compute(img2, keypoints2, descriptors2);
             //matcher should include 2 different image's descriptors
             matcher.match(descriptors1, descriptors2, matches);
 
-            int DIST_LIMIT = 60;
+            int DIST_LIMIT = 20;
             List<DMatch> matchesList = matches.toList();
             List<DMatch> matches_final= new ArrayList<DMatch>();
             count = 0;
@@ -241,14 +245,16 @@ public class MainActivity extends Activity {
                 @Override
                 public void run() {
                     numOfMatches.setText("Number of Matches: "+matchnumber);
-                    if(matchnumber > featuresnumber*5/10) {
-                        if(matchnumber > featuresnumber*7/10) {
+                    if(matchnumber > featuresnumber*0/10) {
+                        if(matchnumber > featuresnumber*0/10) {
                             messages.setText("VERY CLOSE!");
+                            cameraPreview.setTrueLocation(true);
                         } else {
                             messages.setText("CLOSE!");
                         }
                     } else {
                         messages.setText("NOT CLOSE!");
+                        cameraPreview.setTrueLocation(false);
                     }
                 }
             });
@@ -265,13 +271,13 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        //cameraPreview.onResume();
+        cameraPreview.onResume();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        //cameraPreview.onPause();
+        cameraPreview.onPause();
     }
 }
 

@@ -7,10 +7,18 @@ import android.app.ActionBar;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Point;
 import android.hardware.Camera;
 import android.util.Log;
+import android.view.Display;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.view.ViewGroup;
+import android.view.WindowManager;
+import android.widget.FrameLayout;
+import android.widget.RelativeLayout;
+
 import java.io.IOException;
 import java.util.List;
 
@@ -19,15 +27,29 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     private SurfaceHolder mHolder;
     private Camera mCamera;
     private byte[] data;
-    private boolean frameread;
+    private boolean trueLocation = false;
     private Camera.Parameters params;
 
     public CameraPreview(Context context) {
         super(context);
-        frameread = true;
 
         mCamera = Camera.open();
         params = mCamera.getParameters();
+
+        //get the dimensions of the device screen
+        WindowManager wm = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
+        Display display = wm.getDefaultDisplay();
+        Point displaysize = new Point();
+        display.getSize(displaysize);
+
+        for (Camera.Size size : params.getSupportedPreviewSizes()) {
+            //if (size.width * size.height < params.getPreviewSize().width * params.getPreviewSize().height && size.width > displaysize.x/10 && size.height > displaysize.y/10)
+            //if (size.width * size.height < params.getPreviewSize().width * params.getPreviewSize().height && Math.abs((double)size.width / (double)size.height - (double)displaysize.x / (double)displaysize.y) < 0.1)
+            if (size.width * size.height < params.getPreviewSize().width * params.getPreviewSize().height)
+            {
+                params.setPreviewSize(size.width, size.height);
+            }
+        }
         params.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
         mCamera.setParameters(params);
         mCamera.setDisplayOrientation(90);
@@ -36,7 +58,8 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         mHolder = getHolder();
         mHolder.addCallback(this);
 
-        this.setLayoutParams(new ActionBar.LayoutParams(mCamera.getParameters().getPreviewSize().height, mCamera.getParameters().getPreviewSize().width));
+        //this.setLayoutParams(new ActionBar.LayoutParams(mCamera.getParameters().getPreviewSize().height, mCamera.getParameters().getPreviewSize().width));
+        //this.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     }
 
     @Override
@@ -46,9 +69,6 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         } catch (IOException e) {
             Log.d("CameraPreview", "Error setting camera preview: " + e.getMessage());
         }
-//        Canvas canvas = holder.lockCanvas();
-//        canvas.drawColor(Color.RED);
-//        holder.unlockCanvasAndPost(canvas);
     }
 
     @Override
@@ -74,13 +94,20 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 
     @Override
     public void onPreviewFrame(byte[] bytes, Camera camera) {
-//        if(frameread == true) {
-//            frameread = false;
-//            data = bytes;
-//            frameread = true;
-//        }
         data = bytes;
+    }
 
+    @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        assert getLayoutParams() != null;
+        RelativeLayout.LayoutParams lp = (RelativeLayout.LayoutParams) getLayoutParams();
+        lp.addRule(RelativeLayout.CENTER_HORIZONTAL);
+        lp.addRule(RelativeLayout.CENTER_VERTICAL);
+        lp.height = mCamera.getParameters().getPreviewSize().width;
+        lp.width = mCamera.getParameters().getPreviewSize().height;
+
+        setLayoutParams(lp);
     }
 
     void startPreview() {
@@ -89,10 +116,6 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 
     byte[] getCurrentFrame() {
         return data;
-    }
-
-    int getPreviewFormat() {
-        return mCamera.getParameters().getPreviewFormat();
     }
 
     int getPreviewHeight() { return mCamera.getParameters().getPreviewSize().height; }
@@ -111,4 +134,16 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         mCamera.setParameters(params);
     }
 
+    void setTrueLocation (boolean truelocation) {
+        trueLocation = truelocation;
+    }
+
+    void onPause() {
+        mCamera.stopPreview();
+        mCamera.release();
+    }
+
+    void onResume() {
+
+    }
 }
