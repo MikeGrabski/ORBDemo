@@ -4,10 +4,8 @@ import android.app.Activity;
 import android.graphics.ImageFormat;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.FrameLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -18,11 +16,9 @@ import org.opencv.core.DMatch;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfDMatch;
 import org.opencv.core.MatOfKeyPoint;
-import org.opencv.core.Size;
 import org.opencv.features2d.DescriptorExtractor;
 import org.opencv.features2d.DescriptorMatcher;
 import org.opencv.features2d.FeatureDetector;
-import org.opencv.imgproc.Imgproc;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,7 +28,7 @@ import static org.opencv.imgproc.Imgproc.resize;
 public class MainActivity extends Activity {
     //CameraPreview
     CameraPreview cameraPreview;
-    MyCustomView picturePreview;
+    MyCustomView myCustomView;
 
     //UI stuff
     Button capture;
@@ -93,7 +89,7 @@ public class MainActivity extends Activity {
 
         cameraView = (RelativeLayout)findViewById(R.id.cameraView);
         cameraPreview = new CameraPreview(getApplicationContext());
-        picturePreview = new MyCustomView(getApplicationContext());
+        myCustomView = new MyCustomView(getApplicationContext());
         width = cameraPreview.getPreviewWidth();
         height = cameraPreview.getPreviewHeight();
 
@@ -123,7 +119,7 @@ public class MainActivity extends Activity {
         super.onStart();
         messages.setText("Please, capture a reference photo.");
         cameraView.addView(cameraPreview);
-        cameraView.addView(picturePreview);
+        cameraView.addView(myCustomView);
         cameraPreview.startPreview();
         capture.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -229,7 +225,7 @@ public class MainActivity extends Activity {
             //matcher should include 2 different image's descriptors
             matcher.match(descriptors1, descriptors2, matches);
 
-            int DIST_LIMIT = 30;
+            int DIST_LIMIT = 25;
             List<DMatch> matchesList = matches.toList();
             List<DMatch> matches_final= new ArrayList<DMatch>();
             count = 0;
@@ -248,18 +244,13 @@ public class MainActivity extends Activity {
                 public void run() {
                     numOfMatches.setText("Number of Matches: "+matchnumber);
                     if(matchnumber > featuresnumber*0/10) {
-                        if(matchnumber > featuresnumber*0/10) {
-                            messages.setText("VERY CLOSE!");
-                            picturePreview.invalidate();
-                            picturePreview.setDrawingState(true);
-                        } else {
-                            messages.setText("CLOSE!");
-                        }
+                        messages.setText("VERY CLOSE!");
+                        myCustomView.setDrawingState(true);
                     } else {
                         messages.setText("NOT CLOSE!");
-                        picturePreview.invalidate();
-                        picturePreview.setDrawingState(false);
+                        myCustomView.setDrawingState(false);
                     }
+                    myCustomView.invalidate();
                 }
             });
 
