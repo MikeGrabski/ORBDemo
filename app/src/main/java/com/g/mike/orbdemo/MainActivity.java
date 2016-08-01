@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.graphics.ImageFormat;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.FrameLayout;
@@ -17,9 +18,11 @@ import org.opencv.core.DMatch;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfDMatch;
 import org.opencv.core.MatOfKeyPoint;
+import org.opencv.core.Size;
 import org.opencv.features2d.DescriptorExtractor;
 import org.opencv.features2d.DescriptorMatcher;
 import org.opencv.features2d.FeatureDetector;
+import org.opencv.imgproc.Imgproc;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -195,7 +198,9 @@ public class MainActivity extends Activity {
 
         currentPhoto = cameraPreview.getCurrentFrame();
         img1.put(0,0,currentPhoto);
-        resize(img1, img1, img1.size(), 0, 0, 1);
+        Mat resizedimg1 = new Mat();
+        Imgproc.resize(img1,resizedimg1,new Size(640,480));
+        img1=resizedimg1;
         detector.detect(img1, keypoints1);
         descriptor.compute(img1, keypoints1, descriptors1);
 
@@ -210,6 +215,7 @@ public class MainActivity extends Activity {
         }
         featuresnumber = count;
         numOfFeatures.setText("Number of features: " + featuresnumber);
+        Log.d("Img1:", "Size is: " + img1.size().height + "x" + img1.size().width);
     }
 
     public void matchImages(){
@@ -221,7 +227,10 @@ public class MainActivity extends Activity {
             long startTime = System.currentTimeMillis();
             byte[] data = cameraPreview.getCurrentFrame();
             img2.put(0, 0, data);
-            resize(img2, img2, img2.size(), 0, 0, 1);
+            Mat resizedimg2 = new Mat();
+            Imgproc.resize(img2,resizedimg2,new Size(640,480));
+            img2 = resizedimg2;
+            //resize(img2, img2, img2.size(), 0, 0, 1);
             detector.detect(img2, keypoints2);
             descriptor.compute(img2, keypoints2, descriptors2);
             //matcher should include 2 different image's descriptors
@@ -266,6 +275,7 @@ public class MainActivity extends Activity {
             }
         }
 
+        Log.d("Img2:", "Size is: " + img2.size().height + "x" + img2.size().width);
     }
 
     @Override
