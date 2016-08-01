@@ -29,7 +29,7 @@ import static org.opencv.imgproc.Imgproc.resize;
 public class MainActivity extends Activity {
     //CameraPreview
     CameraPreview cameraPreview;
-    MyCustomView myCustomView;
+    PicturePreview picturePreview;
 
     //UI stuff
     Button capture;
@@ -90,7 +90,7 @@ public class MainActivity extends Activity {
 
         cameraView = (RelativeLayout)findViewById(R.id.cameraView);
         cameraPreview = new CameraPreview(getApplicationContext());
-        myCustomView = new MyCustomView(getApplicationContext());
+        picturePreview = new PicturePreview(getApplicationContext());
         width = cameraPreview.getPreviewWidth();
         height = cameraPreview.getPreviewHeight();
 
@@ -120,7 +120,7 @@ public class MainActivity extends Activity {
         super.onStart();
         messages.setText("Please, capture a reference photo.");
         cameraView.addView(cameraPreview);
-        cameraView.addView(myCustomView);
+        cameraView.addView(picturePreview);
         cameraPreview.startPreview();
         capture.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -248,13 +248,13 @@ public class MainActivity extends Activity {
                     if(matchnumber > featuresnumber*0/10) {
                         if(matchnumber > featuresnumber*0/10) {
                             messages.setText("VERY CLOSE!");
-                            cameraPreview.setTrueLocation(true);
+                            picturePreview.setDrawingState(true);
                         } else {
                             messages.setText("CLOSE!");
                         }
                     } else {
                         messages.setText("NOT CLOSE!");
-                        cameraPreview.setTrueLocation(false);
+                        picturePreview.setDrawingState(false);
                     }
                 }
             });

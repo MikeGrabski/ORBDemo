@@ -45,8 +45,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         for (Camera.Size size : params.getSupportedPreviewSizes()) {
             //if (size.width * size.height < params.getPreviewSize().width * params.getPreviewSize().height && size.width > displaysize.x/10 && size.height > displaysize.y/10)
             //if (size.width * size.height < params.getPreviewSize().width * params.getPreviewSize().height && Math.abs((double)size.width / (double)size.height - (double)displaysize.x / (double)displaysize.y) < 0.1)
-            if (size.width * size.height < params.getPreviewSize().width * params.getPreviewSize().height)
-            {
+            if (size.width * size.height < params.getPreviewSize().width * params.getPreviewSize().height) {
                 params.setPreviewSize(size.width, size.height);
             }
         }
@@ -78,18 +77,14 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 
     @Override
     public void surfaceChanged(SurfaceHolder holder, int format, int w, int h) {
+        mCamera.stopPreview();
 
-        //mCamera.stopPreview();
-
-        // make any resize, rotate or reformatting changes here
-
-
-        /*try {
+        try {
             mCamera.setPreviewDisplay(mHolder);
-            //mCamera.startPreview();
+            mCamera.startPreview();
         } catch (Exception e){
             Log.d("CameraPreview", "Error starting camera preview: " + e.getMessage());
-        }*/
+        }
     }
 
     @Override
@@ -144,6 +139,6 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     }
 
     void onResume() {
-
+        startPreview();
     }
 }

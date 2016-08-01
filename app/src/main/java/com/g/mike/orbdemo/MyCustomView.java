@@ -28,11 +28,10 @@ public class MyCustomView extends View {
 
     @Override
     protected void onDraw(Canvas canvas) {
-
+        super.onDraw(canvas);
         canvas.drawCircle(10, 10, 10, paint);
         canvas2.drawCircle(25, 25, 25, paint);
         canvas.drawBitmap(backingBitmap, 200, 90, paint);
         Log.d("MyCustomView", "onDraw: ondraw called");
-        super.onDraw(canvas);
     }
 }
