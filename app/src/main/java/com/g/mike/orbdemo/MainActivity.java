@@ -1,25 +1,38 @@
 package com.g.mike.orbdemo;
 
+import android.Manifest;
 import android.app.Activity;
+import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.graphics.ImageFormat;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.FrameLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import org.opencv.android.OpenCVLoader;
+import org.opencv.android.Utils;
+import org.opencv.core.CvException;
 import org.opencv.core.CvType;
 import org.opencv.core.DMatch;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfDMatch;
 import org.opencv.core.MatOfKeyPoint;
+import org.opencv.core.Scalar;
+import org.opencv.core.Size;
 import org.opencv.features2d.DescriptorExtractor;
 import org.opencv.features2d.DescriptorMatcher;
 import org.opencv.features2d.FeatureDetector;
+import org.opencv.imgproc.Imgproc;
 
+import java.security.Permission;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -45,7 +58,7 @@ public class MainActivity extends Activity {
     int width;
     int height;
     private int previewFormat;
-
+    DescriptorMatcher matcher;
     FeatureDetector detector;
     DescriptorExtractor descriptor;
 
@@ -56,7 +69,6 @@ public class MainActivity extends Activity {
     int matchnumber = 0;
 
     //1st image descriptors and keyfeatures
-    DescriptorMatcher matcher;
     Mat img1;
     Mat descriptors1;
     MatOfKeyPoint keypoints1;
@@ -76,17 +88,36 @@ public class MainActivity extends Activity {
 
     int count;
 
+    boolean cameraPermissionGranted = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         setContentView(R.layout.activity_main);
+
 
         OpenCVLoader.initDebug();
 
+        int permissionCheck = ContextCompat.checkSelfPermission(this,
+                Manifest.permission.CAMERA);
+
+        if(permissionCheck == PackageManager.PERMISSION_GRANTED){
+            cameraPermissionGranted = true;
+            init();
+        }
+        else if(permissionCheck == PackageManager.PERMISSION_DENIED){
+            cameraPermissionGranted = false;
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.CAMERA},
+                    1);
+        }
+
+    }
+    private void init(){
         capture = (Button)findViewById(R.id.captureFrame);
         startTracking  = (Button)findViewById(R.id.startTracking);
         stopTracking = (Button)findViewById(R.id.stopTracking);
-
         cameraView = (RelativeLayout)findViewById(R.id.cameraView);
         cameraPreview = new CameraPreview(getApplicationContext());
         myCustomView = new MyCustomView(getApplicationContext());
@@ -100,7 +131,7 @@ public class MainActivity extends Activity {
 
         detector = FeatureDetector.create(FeatureDetector.ORB);
         descriptor = DescriptorExtractor.create(DescriptorExtractor.ORB);;
-        matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);
+        matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMINGLUT);
 
         img1 = new Mat(width, height, CvType.CV_8UC3);
         img2 = new Mat(width, height, CvType.CV_8UC3);
@@ -112,11 +143,8 @@ public class MainActivity extends Activity {
         matches = new MatOfDMatch();
 
         setPreviewFormat();
-    }
 
-    @Override
-    protected void onStart() {
-        super.onStart();
+
         messages.setText("Please, capture a reference photo.");
         cameraView.addView(cameraPreview);
         cameraView.addView(myCustomView);
@@ -139,6 +167,11 @@ public class MainActivity extends Activity {
                 stopTracking();
             }
         });
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
     }
 
     private void setPreviewFormat(){
@@ -193,6 +226,7 @@ public class MainActivity extends Activity {
         numOfFeatures.setVisibility(Button.VISIBLE);
 
         currentPhoto = cameraPreview.getCurrentFrame();
+
         img1.put(0,0,currentPhoto);
         detector.detect(img1, keypoints1);
         descriptor.compute(img1, keypoints1, descriptors1);
@@ -225,7 +259,7 @@ public class MainActivity extends Activity {
             //matcher should include 2 different image's descriptors
             matcher.match(descriptors1, descriptors2, matches);
 
-            int DIST_LIMIT = 25;
+            int DIST_LIMIT = 20;
             List<DMatch> matchesList = matches.toList();
             List<DMatch> matches_final= new ArrayList<DMatch>();
             count = 0;
@@ -244,13 +278,16 @@ public class MainActivity extends Activity {
                 public void run() {
                     numOfMatches.setText("Number of Matches: "+matchnumber);
                     if(matchnumber > featuresnumber*0/10) {
-                        messages.setText("VERY CLOSE!");
-                        myCustomView.setDrawingState(true);
+                        if(matchnumber > featuresnumber*0/10) {
+                            messages.setText("VERY CLOSE!");
+                            cameraPreview.setTrueLocation(true);
+                        } else {
+                            messages.setText("CLOSE!");
+                        }
                     } else {
                         messages.setText("NOT CLOSE!");
-                        myCustomView.setDrawingState(false);
+                        cameraPreview.setTrueLocation(false);
                     }
-                    myCustomView.invalidate();
                 }
             });
 
@@ -260,18 +297,40 @@ public class MainActivity extends Activity {
                 e.printStackTrace();
             }
         }
+
+    }
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case 1: {
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    cameraPermissionGranted = true;
+                    init();
+
+                } else {
+                    cameraPermissionGranted = false;
+                    Toast.makeText(getApplicationContext(),"This app can't work without camera, BYE!", Toast.LENGTH_LONG).show();
+                    finish();
+                }
+                return;
+            }
+
+        }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        cameraPreview.onResume();
+        if(cameraPermissionGranted)
+            cameraPreview.onResume();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        cameraPreview.onPause();
+        if(cameraPermissionGranted)
+            cameraPreview.onPause();
     }
 }
-

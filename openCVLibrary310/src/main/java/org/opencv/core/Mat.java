@@ -1,5 +1,7 @@
 package org.opencv.core;
 
+import android.util.Log;
+
 // C++: class Mat
 //javadoc: Mat
 public class Mat {
@@ -988,12 +990,15 @@ public class Mat {
     // javadoc:Mat::put(row,col,data)
     public int put(int row, int col, byte[] data) {
         int t = type();
-        if (data == null || data.length % CvType.channels(t) != 0)
+        if (data == null || data.length % CvType.channels(t) != 0) {
+            if(data == null)
+                Log.d("datanull", "put: data is null");
             throw new java.lang.UnsupportedOperationException(
                     "Provided data element number (" +
                             (data == null ? 0 : data.length) +
                             ") should be multiple of the Mat channels count (" +
                             CvType.channels(t) + ")");
+        }
         if (CvType.depth(t) == CvType.CV_8U || CvType.depth(t) == CvType.CV_8S) {
             return nPutB(nativeObj, row, col, data.length, data);
         }
