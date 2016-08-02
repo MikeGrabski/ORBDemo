@@ -89,6 +89,7 @@ public class MainActivity extends Activity {
     int count;
 
     boolean cameraPermissionGranted = false;
+    private  Mat homographyMat;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
