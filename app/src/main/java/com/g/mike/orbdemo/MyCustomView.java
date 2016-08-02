@@ -9,6 +9,8 @@ import android.graphics.Paint;
 import android.view.View;
 import android.view.ViewGroup;
 
+import org.opencv.core.Mat;
+
 /**
  * Created by iosuser11 on 8/1/16.
  */
@@ -40,7 +42,7 @@ public class MyCustomView extends View {
         drawingState = state;
     }
 
-    void setTransformMatrix(Matrix matrix) {
-        mat = matrix;
+    void setTransformMatrix(Mat homographymat) {
+        mat.setValues(new float[]{homographymat.step1(0), homographymat.step1(1), homographymat.step1(2), homographymat.step1(3), homographymat.step1(4), homographymat.step1(5), homographymat.step1(6), homographymat.step1(7), homographymat.step1(8)});
     }
 }

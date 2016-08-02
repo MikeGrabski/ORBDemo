@@ -280,13 +280,15 @@ public class MainActivity extends Activity {
                     if(matchnumber > featuresnumber*0/10) {
                         if(matchnumber > featuresnumber*0/10) {
                             messages.setText("VERY CLOSE!");
-                            cameraPreview.setTrueLocation(true);
+                            myCustomView.setDrawingState(true);
+                            myCustomView.setTransformMatrix(homographyMat);
+
                         } else {
                             messages.setText("CLOSE!");
                         }
                     } else {
                         messages.setText("NOT CLOSE!");
-                        cameraPreview.setTrueLocation(false);
+                        myCustomView.setDrawingState(false);
                     }
                 }
             });
