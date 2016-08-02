@@ -281,8 +281,6 @@ public class MainActivity extends Activity {
                         if(matchnumber > featuresnumber*0/10) {
                             messages.setText("VERY CLOSE!");
                             myCustomView.setDrawingState(true);
-                            myCustomView.setTransformMatrix(homographyMat);
-
                         } else {
                             messages.setText("CLOSE!");
                         }
@@ -290,6 +288,7 @@ public class MainActivity extends Activity {
                         messages.setText("NOT CLOSE!");
                         myCustomView.setDrawingState(false);
                     }
+                    myCustomView.invalidate();
                 }
             });
 
