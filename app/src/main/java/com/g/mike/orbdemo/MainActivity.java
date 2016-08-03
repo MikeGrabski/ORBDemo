@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.ImageFormat;
+import android.graphics.Matrix;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
@@ -19,12 +20,18 @@ import android.widget.Toast;
 
 import org.opencv.android.OpenCVLoader;
 import org.opencv.android.Utils;
+import org.opencv.calib3d.Calib3d;
+import org.opencv.core.Core;
 import org.opencv.core.CvException;
 import org.opencv.core.CvType;
 import org.opencv.core.DMatch;
+import org.opencv.core.KeyPoint;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfDMatch;
 import org.opencv.core.MatOfKeyPoint;
+import org.opencv.core.MatOfPoint;
+import org.opencv.core.MatOfPoint2f;
+import org.opencv.core.Point;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.features2d.DescriptorExtractor;
@@ -36,6 +43,10 @@ import java.security.Permission;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.opencv.calib3d.Calib3d.RANSAC;
+import static org.opencv.calib3d.Calib3d.decomposeHomographyMat;
+import static org.opencv.calib3d.Calib3d.findHomography;
+import static org.opencv.imgproc.Imgproc.getAffineTransform;
 import static org.opencv.imgproc.Imgproc.resize;
 
 public class MainActivity extends Activity {
@@ -89,7 +100,12 @@ public class MainActivity extends Activity {
     int count;
 
     boolean cameraPermissionGranted = false;
-    private  Mat homographyMat;
+
+    Mat cameraCalib;
+    private List<Mat> normals;
+    private List<Mat> translations;
+
+    float finalh[][];
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -146,9 +162,8 @@ public class MainActivity extends Activity {
         setPreviewFormat();
 
 
-        messages.setText("Please, capture a reference photo.");
+        messages.setText("Capture a wall.");
         cameraView.addView(cameraPreview);
-        cameraView.addView(myCustomView);
         cameraPreview.startPreview();
         capture.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -168,6 +183,15 @@ public class MainActivity extends Activity {
                 stopTracking();
             }
         });
+
+
+//        finalHomography.setValues(new float[]{1f,0f,0f,0f,1f,0f,0f,0f,1f});
+//        float trainingData[][] = new float[][]{ new float[]{1, 0, 0}, new float[]{0, 1, 0}, new float[]{0, 0, 1}};
+//        finalHomography = new Mat(3, 3, 6);//HxW 4x2
+//        for (int i=0;i<3;i++)
+//            finalHomography.put(i,0, trainingData[i]);
+        finalh = new float[][]{ new float[]{1, 0, 0}, new float[]{0, 1, 0}, new float[]{0, 0, 1}};;
+
     }
 
     @Override
@@ -201,6 +225,7 @@ public class MainActivity extends Activity {
                 return  null;
             }
         }.execute();
+        cameraView.addView(myCustomView);
     }
     private void stopTracking() {
 
@@ -215,6 +240,7 @@ public class MainActivity extends Activity {
         averageTimePerFrameTextView.setText("Avg Time per Frame: "+(double)elapsedTime / (double)frameCount + " ms");
         elapsedTime = 0;
         frameCount = 0;
+        cameraView.removeView(myCustomView);
     }
 
     private void capture() {
@@ -252,6 +278,9 @@ public class MainActivity extends Activity {
                 break;
             }
             long startTime = System.currentTimeMillis();
+//            img1 = img2;
+//            keypoints1 = keypoints2;
+//            descriptors1 = descriptors2;
             byte[] data = cameraPreview.getCurrentFrame();
             img2.put(0, 0, data);
             //resize(img2, img2, img2.size(), 0, 0, 1);
@@ -260,7 +289,7 @@ public class MainActivity extends Activity {
             //matcher should include 2 different image's descriptors
             matcher.match(descriptors1, descriptors2, matches);
 
-            int DIST_LIMIT = 20;
+            int DIST_LIMIT = 50;
             List<DMatch> matchesList = matches.toList();
             List<DMatch> matches_final= new ArrayList<DMatch>();
             count = 0;
@@ -271,20 +300,59 @@ public class MainActivity extends Activity {
                 }
             }
             matchnumber = count;
+
+
+
+            //compute the transformation based on the matched features
+
+            if(matchnumber>4) {
+                List<Point> objpoints = new ArrayList<Point>();
+                List<Point> scenepoints = new ArrayList<Point>();
+                List<KeyPoint> keys1 = keypoints1.toList();
+                List<KeyPoint> keys2 = keypoints2.toList();
+                for(int i=0; i < matches_final.size(); i++) {
+                    objpoints.add(keys1.get((matches_final.get(i)).queryIdx).pt);
+                    scenepoints.add(keys2.get((matches_final.get(i)).trainIdx).pt);
+                }
+                MatOfPoint2f obj = new MatOfPoint2f();
+                obj.fromList(objpoints);
+                MatOfPoint2f scene = new MatOfPoint2f();
+                scene.fromList(scenepoints);
+                Mat homography = Calib3d.findHomography(obj, scene, RANSAC, 0.1);
+                Log.d("INT", "matchImages: " +homography.type());
+//                Core.gemm(homography,finalHomography, 1.0, finalHomography, 0.0, null, 0);
+//                Matrix h = new Matrix();
+//                h.setValues(new float[]{(float) homography.get(0,0)[0],(float) homography.get(0,1)[0],
+//(float) homography.get(0,2)[0], (float) homography.get(1,0)[0], (float) homography.get(1,1)[0],
+//(float) homography.get(1,2)[0], (float) homography.get(2,0)[0], (float) homography.get(2,1)[0], (float) homography.get(2,2)[0]});
+
+                float h[][] = new float[3][3];
+                for(int i = 0; i<3; i++) {
+                    for(int j = 0; j<3; j++) {
+                        h[i][j] = (float)homography.get(i, j)[0];
+                    }
+                }
+//                multiply(finalh, h, finalh);
+//                Log.d("finalh", "matchImages: "+finalh[0][2]);
+                finalh = h;
+                myCustomView.setTransformMatrix(finalh);
+
+                try {
+                    Thread.sleep(1);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
             long endTime = System.currentTimeMillis();
             elapsedTime+=(endTime-startTime);
             frameCount++;
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    numOfMatches.setText("Number of Matches: "+matchnumber);
-                    if(matchnumber > featuresnumber*0/10) {
-                        if(matchnumber > featuresnumber*0/10) {
-                            messages.setText("VERY CLOSE!");
-                            myCustomView.setDrawingState(true);
-                        } else {
-                            messages.setText("CLOSE!");
-                        }
+                    numOfMatches.setText("Number of Matches: " + matchnumber);
+                    if(matchnumber > featuresnumber * 0/10) {
+                        messages.setText("VERY CLOSE!");
+                        myCustomView.setDrawingState(true);
                     } else {
                         messages.setText("NOT CLOSE!");
                         myCustomView.setDrawingState(false);
@@ -292,18 +360,10 @@ public class MainActivity extends Activity {
                     myCustomView.invalidate();
                 }
             });
-
-            try {
-                Thread.sleep(10);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
         }
-
     }
     @Override
-    public void onRequestPermissionsResult(int requestCode,
-                                           String permissions[], int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
         switch (requestCode) {
             case 1: {
                 if (grantResults.length > 0
@@ -335,4 +395,14 @@ public class MainActivity extends Activity {
         if(cameraPermissionGranted)
             cameraPreview.onPause();
     }
+
+    public static void multiply(float[][] m1, float[][] m2, float[][] result) {
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                result[i][j] = m1[i][0] * m2[0][j] + m1[i][1] * m2[1][j] + m1[i][2] * m2[2][j];
+            }
+        }
+    }
+
+
 }

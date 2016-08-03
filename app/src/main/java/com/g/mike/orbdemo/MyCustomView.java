@@ -22,21 +22,22 @@ public class MyCustomView extends View {
     private Matrix mat;
     boolean drawingState;
 
+
     public MyCustomView(Context context) {
         super(context);
         setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         mat = new Matrix();
         paint = new Paint();
         drawingState = false;
+        mat.setValues(new float[]{1,0,220,0,1,350,0,0,1});
+
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        if(drawingState) {
-            Log.d("ondraw", "onDraw: called");
             image = BitmapFactory.decodeResource(getResources(), R.drawable.penguin);
-            mat.setValues(new float[]{1,0,220,0,1,350,0,0,1});
+        if(drawingState) {
             canvas.drawBitmap(image, mat, paint);
         }
     }
@@ -45,7 +46,8 @@ public class MyCustomView extends View {
         drawingState = state;
     }
 
-    void setTransformMatrix(Mat homographymat) {
-        mat.setValues(new float[]{homographymat.step1(0), homographymat.step1(1), homographymat.step1(2), homographymat.step1(3), homographymat.step1(4), homographymat.step1(5), homographymat.step1(6), homographymat.step1(7), homographymat.step1(8)});
+    void setTransformMatrix(float[][] f) {
+
+        mat.setTranslate(f[0][2], f[1][2]);
     }
 }
