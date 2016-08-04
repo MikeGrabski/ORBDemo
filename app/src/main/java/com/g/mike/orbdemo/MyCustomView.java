@@ -36,7 +36,7 @@ public class MyCustomView extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-            image = BitmapFactory.decodeResource(getResources(), R.drawable.penguin);
+            image = BitmapFactory.decodeResource(getResources(), R.drawable.square);
         if(drawingState) {
             canvas.drawBitmap(image, mat, paint);
         }

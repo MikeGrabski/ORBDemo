@@ -332,9 +332,7 @@ public class MainActivity extends Activity {
                         h[i][j] = (float)homography.get(i, j)[0];
                     }
                 }
-//                multiply(finalh, h, finalh);
-//                Log.d("finalh", "matchImages: "+finalh[0][2]);
-                finalh = h;
+                multiply(finalh, h, finalh);
                 myCustomView.setTransformMatrix(finalh);
 
                 try {
