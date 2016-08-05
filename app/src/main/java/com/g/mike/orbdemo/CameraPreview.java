@@ -3,15 +3,23 @@ package com.g.mike.orbdemo;
 /**
  * Created by iosuser12 on 7/22/16.
  */
+import android.app.ActionBar;
 import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
 import android.graphics.Point;
 import android.hardware.Camera;
+import android.hardware.camera2.CameraAccessException;
+import android.hardware.camera2.CameraCharacteristics;
+import android.hardware.camera2.CameraManager;
 import android.util.Log;
 import android.view.Display;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.widget.FrameLayout;
 import android.widget.RelativeLayout;
 
 import java.io.IOException;
@@ -37,13 +45,13 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         Point displaysize = new Point();
         display.getSize(displaysize);
 
-        for (Camera.Size size : params.getSupportedPreviewSizes()) {
-            //if (size.width * size.height < params.getPreviewSize().width * params.getPreviewSize().height && size.width > displaysize.x/10 && size.height > displaysize.y/10)
-            //if (size.width * size.height < params.getPreviewSize().width * params.getPreviewSize().height && Math.abs((double)size.width / (double)size.height - (double)displaysize.x / (double)displaysize.y) < 0.1)
-            if (size.width * size.height < params.getPreviewSize().width * params.getPreviewSize().height) {
-                params.setPreviewSize(size.width, size.height);
-            }
-        }
+//        for (Camera.Size size : params.getSupportedPreviewSizes()) {
+//            //if (size.width * size.height < params.getPreviewSize().width * params.getPreviewSize().height && size.width > displaysize.x/10 && size.height > displaysize.y/10)
+//            //if (size.width * size.height < params.getPreviewSize().width * params.getPreviewSize().height && Math.abs((double)size.width / (double)size.height - (double)displaysize.x / (double)displaysize.y) < 0.1)
+//            if (size.width * size.height < params.getPreviewSize().width * params.getPreviewSize().height) {
+//                params.setPreviewSize(size.width, size.height);
+//            }
+//        }
         params.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
         mCamera.setParameters(params);
         mCamera.setDisplayOrientation(90);

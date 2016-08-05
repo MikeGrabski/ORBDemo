@@ -3,9 +3,7 @@ package com.g.mike.orbdemo;
 import android.Manifest;
 import android.app.Activity;
 import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
 import android.graphics.ImageFormat;
-import android.graphics.Matrix;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
@@ -13,41 +11,30 @@ import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.FrameLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import org.opencv.android.OpenCVLoader;
-import org.opencv.android.Utils;
 import org.opencv.calib3d.Calib3d;
-import org.opencv.core.Core;
-import org.opencv.core.CvException;
 import org.opencv.core.CvType;
 import org.opencv.core.DMatch;
 import org.opencv.core.KeyPoint;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfDMatch;
 import org.opencv.core.MatOfKeyPoint;
-import org.opencv.core.MatOfPoint;
 import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
 import org.opencv.core.Scalar;
-import org.opencv.core.Size;
 import org.opencv.features2d.DescriptorExtractor;
 import org.opencv.features2d.DescriptorMatcher;
 import org.opencv.features2d.FeatureDetector;
-import org.opencv.imgproc.Imgproc;
 
-import java.security.Permission;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.PriorityQueue;
 
 import static org.opencv.calib3d.Calib3d.RANSAC;
-import static org.opencv.calib3d.Calib3d.decomposeHomographyMat;
-import static org.opencv.calib3d.Calib3d.findHomography;
-import static org.opencv.imgproc.Imgproc.getAffineTransform;
-import static org.opencv.imgproc.Imgproc.resize;
 
 public class MainActivity extends Activity {
     //CameraPreview
@@ -137,7 +124,6 @@ public class MainActivity extends Activity {
         stopTracking = (Button)findViewById(R.id.stopTracking);
         cameraView = (RelativeLayout)findViewById(R.id.cameraView);
         cameraPreview = new CameraPreview(getApplicationContext());
-        myCustomView = new MyCustomView(getApplicationContext());
         width = cameraPreview.getPreviewWidth();
         height = cameraPreview.getPreviewHeight();
 
@@ -225,6 +211,7 @@ public class MainActivity extends Activity {
                 return  null;
             }
         }.execute();
+        myCustomView = new MyCustomView(getApplicationContext());
         cameraView.addView(myCustomView);
     }
     private void stopTracking() {
@@ -255,7 +242,10 @@ public class MainActivity extends Activity {
         currentPhoto = cameraPreview.getCurrentFrame();
 
         img1.put(0,0,currentPhoto);
-        detector.detect(img1, keypoints1);
+        Mat mask =Mat.zeros(img1.size(), CvType.CV_8U);  // type of mask is CV_8U
+        Mat roi = new Mat(mask, myCustomView.getRect());
+        roi.setTo(new Scalar(255, 255, 255));
+        detector.detect(img1, keypoints1, mask);
         descriptor.compute(img1, keypoints1, descriptors1);
 
         //counting the number of features in the original captured photo
@@ -278,9 +268,6 @@ public class MainActivity extends Activity {
                 break;
             }
             long startTime = System.currentTimeMillis();
-//            img1 = img2;
-//            keypoints1 = keypoints2;
-//            descriptors1 = descriptors2;
             byte[] data = cameraPreview.getCurrentFrame();
             img2.put(0, 0, data);
             //resize(img2, img2, img2.size(), 0, 0, 1);
@@ -289,23 +276,35 @@ public class MainActivity extends Activity {
             //matcher should include 2 different image's descriptors
             matcher.match(descriptors1, descriptors2, matches);
 
+
             int DIST_LIMIT = 50;
             List<DMatch> matchesList = matches.toList();
             List<DMatch> matches_final= new ArrayList<DMatch>();
+            PriorityQueue<DMatch> orderedmatches = new PriorityQueue<>();
             count = 0;
+            for(int i = 0; i < matchesList.size(); i++) {
+                orderedmatches.add(matchesList.get(i));
+            }
+
+//            for(int i = 0; i<4; i++) {
+//                matches_final.add(orderedmatches.poll());
+//            }
+
             for(int i = 0; i < matchesList.size(); i++) {
                 if (matchesList.get(i).distance <= DIST_LIMIT) {
                     matches_final.add(matches.toList().get(i));
                     count++;
                 }
             }
+
+            Log.d("number of matches", "matchImages: "+matches_final.size());
+            myCustomView.setMatches(matches_final, keypoints2);
+
+//            matchnumber = 4;
             matchnumber = count;
 
-
-
             //compute the transformation based on the matched features
-
-            if(matchnumber>4) {
+            if(true) {
                 List<Point> objpoints = new ArrayList<Point>();
                 List<Point> scenepoints = new ArrayList<Point>();
                 List<KeyPoint> keys1 = keypoints1.toList();
@@ -319,21 +318,27 @@ public class MainActivity extends Activity {
                 MatOfPoint2f scene = new MatOfPoint2f();
                 scene.fromList(scenepoints);
                 Mat homography = Calib3d.findHomography(obj, scene, RANSAC, 0.1);
-                Log.d("INT", "matchImages: " +homography.type());
-//                Core.gemm(homography,finalHomography, 1.0, finalHomography, 0.0, null, 0);
+                //                Core.gemm(homography,finalHomography, 1.0, finalHomography, 0.0, null, 0);
 //                Matrix h = new Matrix();
 //                h.setValues(new float[]{(float) homography.get(0,0)[0],(float) homography.get(0,1)[0],
 //(float) homography.get(0,2)[0], (float) homography.get(1,0)[0], (float) homography.get(1,1)[0],
 //(float) homography.get(1,2)[0], (float) homography.get(2,0)[0], (float) homography.get(2,1)[0], (float) homography.get(2,2)[0]});
 
-                float h[][] = new float[3][3];
-                for(int i = 0; i<3; i++) {
-                    for(int j = 0; j<3; j++) {
-                        h[i][j] = (float)homography.get(i, j)[0];
+                if(homography!=null) {
+                    float h[][] = new float[3][3];
+                    for(int i = 0; i<3; i++) {
+                        for(int j = 0; j<3; j++) {
+                            if(homography.get(i, j) != null)
+                                h[i][j] = (float)homography.get(i, j)[0];
+                        }
                     }
+                    //multiply(finalh, h, finalh);
+                    finalh = h;
+                    myCustomView.setTransformMatrix(finalh);
                 }
-                multiply(finalh, h, finalh);
-                myCustomView.setTransformMatrix(finalh);
+
+
+//                Log.d("finalh", "matchImages: "+finalh[0][2]);
 
                 try {
                     Thread.sleep(1);
@@ -347,6 +352,7 @@ public class MainActivity extends Activity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
+                    Log.d("", "run: runonui thread");
                     numOfMatches.setText("Number of Matches: " + matchnumber);
                     if(matchnumber > featuresnumber * 0/10) {
                         messages.setText("VERY CLOSE!");
@@ -358,6 +364,9 @@ public class MainActivity extends Activity {
                     myCustomView.invalidate();
                 }
             });
+
+//            keypoints1 = keypoints2;
+//            descriptors1 = descriptors2;
         }
     }
     @Override
