@@ -145,12 +145,10 @@ public class MainActivity extends Activity {
         features = new MatOfDMatch();
         matches = new MatOfDMatch();
 
-        setPreviewFormat();
 
 
         messages.setText("Capture a wall.");
         cameraView.addView(cameraPreview);
-        cameraPreview.startPreview();
         capture.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -183,18 +181,6 @@ public class MainActivity extends Activity {
     @Override
     protected void onStart() {
         super.onStart();
-    }
-
-    private void setPreviewFormat(){
-        List<Integer> format = cameraPreview.getSupportedPreiewFormats();
-        for (int i = 0; i < format.size(); i++){
-            if(format.get(i)== ImageFormat.NV21) {
-                previewFormat = ImageFormat.NV21;
-            }
-        }
-        if(previewFormat != ImageFormat.NV21)
-            Toast.makeText(getApplicationContext(),"Your phone not supported yet", Toast.LENGTH_LONG).show();
-        cameraPreview.setPreviewFormat(previewFormat);
     }
 
     private void startTracking() {
