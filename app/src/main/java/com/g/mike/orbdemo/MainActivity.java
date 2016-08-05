@@ -1,5 +1,4 @@
 package com.g.mike.orbdemo;
-
 import android.Manifest;
 import android.app.Activity;
 import android.content.pm.PackageManager;
@@ -14,9 +13,9 @@ import android.widget.Button;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import org.opencv.android.OpenCVLoader;
 import org.opencv.calib3d.Calib3d;
+import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.DMatch;
 import org.opencv.core.KeyPoint;
@@ -29,18 +28,16 @@ import org.opencv.core.Scalar;
 import org.opencv.features2d.DescriptorExtractor;
 import org.opencv.features2d.DescriptorMatcher;
 import org.opencv.features2d.FeatureDetector;
-
+import org.opencv.features2d.Features2d;
+import org.opencv.imgproc.Imgproc;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.PriorityQueue;
-
 import static org.opencv.calib3d.Calib3d.RANSAC;
-
 public class MainActivity extends Activity {
-    //CameraPreview
+    //Views
     CameraPreview cameraPreview;
     MyCustomView myCustomView;
-
     //UI stuff
     Button capture;
     Button startTracking;
@@ -50,105 +47,72 @@ public class MainActivity extends Activity {
     TextView averageTimePerFrameTextView;
     TextView numOfFeatures;
     TextView messages;
-
     //Needed for matching
     byte[] currentPhoto;
     int width;
     int height;
-    private int previewFormat;
     DescriptorMatcher matcher;
     FeatureDetector detector;
     DescriptorExtractor descriptor;
-
     //Total number of features detected in the captured image
     int featuresnumber;
-
     //Total number of mathces per 2 images
     int matchnumber = 0;
-
-    //1st image descriptors and keyfeatures
-    Mat img1;
-    Mat descriptors1;
-    MatOfKeyPoint keypoints1;
-
-    //2nd image descriptors and keyfeautures
-    Mat img2 ;
-    Mat descriptors2 ;
-    MatOfKeyPoint keypoints2 ;
-
+    //image descriptors and keyfeatures
+    Mat img1, img2;
+    Mat descriptors1, descriptors2;
+    MatOfKeyPoint keypoints1, keypoints2;
     //needed for time measuring
     private boolean stopTrackingNow = false;
     private long elapsedTime = 0;
     private int frameCount= 0;
-
     MatOfDMatch features;
     MatOfDMatch matches;
-
     int count;
-
     boolean cameraPermissionGranted = false;
-
     Mat cameraCalib;
     private List<Mat> normals;
     private List<Mat> translations;
-
     float finalh[][];
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         setContentView(R.layout.activity_main);
-
-
         OpenCVLoader.initDebug();
-
         int permissionCheck = ContextCompat.checkSelfPermission(this,
                 Manifest.permission.CAMERA);
-
         if(permissionCheck == PackageManager.PERMISSION_GRANTED){
             cameraPermissionGranted = true;
-            init();
         }
         else if(permissionCheck == PackageManager.PERMISSION_DENIED){
             cameraPermissionGranted = false;
-            ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.CAMERA},
-                    1);
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, 1);
         }
-
     }
     private void init(){
         capture = (Button)findViewById(R.id.captureFrame);
         startTracking  = (Button)findViewById(R.id.startTracking);
         stopTracking = (Button)findViewById(R.id.stopTracking);
         cameraView = (RelativeLayout)findViewById(R.id.cameraView);
-        cameraPreview = new CameraPreview(getApplicationContext());
+        myCustomView = new MyCustomView(getApplicationContext());
         width = cameraPreview.getPreviewWidth();
         height = cameraPreview.getPreviewHeight();
-
         messages = (TextView)findViewById(R.id.messages);
         numOfFeatures = (TextView)findViewById(R.id.numOfFeatures);
         numOfMatches = (TextView)findViewById(R.id.numOfMatches);
         averageTimePerFrameTextView = (TextView)findViewById(R.id.averageTimePerFrame);
-
         detector = FeatureDetector.create(FeatureDetector.ORB);
         descriptor = DescriptorExtractor.create(DescriptorExtractor.ORB);;
         matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMINGLUT);
-
-        img1 = new Mat(width, height, CvType.CV_8UC3);
-        img2 = new Mat(width, height, CvType.CV_8UC3);
+        img1 = new Mat(height+height/2, width, CvType.CV_8UC1);
+        img2 = new Mat(height+height/2, width, CvType.CV_8UC1);
         descriptors1 = new Mat();
         descriptors2 = new Mat();
         keypoints1 = new MatOfKeyPoint();
         keypoints2 = new MatOfKeyPoint();
         features = new MatOfDMatch();
         matches = new MatOfDMatch();
-
-
-
         messages.setText("Capture a wall.");
-        cameraView.addView(cameraPreview);
         capture.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -167,23 +131,20 @@ public class MainActivity extends Activity {
                 stopTracking();
             }
         });
-
-
 //        finalHomography.setValues(new float[]{1f,0f,0f,0f,1f,0f,0f,0f,1f});
 //        float trainingData[][] = new float[][]{ new float[]{1, 0, 0}, new float[]{0, 1, 0}, new float[]{0, 0, 1}};
 //        finalHomography = new Mat(3, 3, 6);//HxW 4x2
 //        for (int i=0;i<3;i++)
 //            finalHomography.put(i,0, trainingData[i]);
         finalh = new float[][]{ new float[]{1, 0, 0}, new float[]{0, 1, 0}, new float[]{0, 0, 1}};;
-
     }
-
     @Override
     protected void onStart() {
         super.onStart();
     }
-
     private void startTracking() {
+        myCustomView = new MyCustomView(getApplicationContext());
+        cameraView.addView(myCustomView);
         if(averageTimePerFrameTextView.getVisibility() == Button.VISIBLE) {
             averageTimePerFrameTextView.setVisibility(Button.GONE);
         }
@@ -197,13 +158,9 @@ public class MainActivity extends Activity {
                 return  null;
             }
         }.execute();
-        myCustomView = new MyCustomView(getApplicationContext());
-        cameraView.addView(myCustomView);
     }
     private void stopTracking() {
-
         messages.setText("Tracking stopped!");
-
         stopTrackingNow = true;
         numOfMatches.setVisibility(Button.GONE);
         numOfFeatures.setVisibility(Button.GONE);
@@ -215,38 +172,27 @@ public class MainActivity extends Activity {
         frameCount = 0;
         cameraView.removeView(myCustomView);
     }
-
     private void capture() {
-
         messages.setText("Start tracking!");
-
         capture.setVisibility(Button.GONE);
         averageTimePerFrameTextView.setVisibility(Button.GONE);
         startTracking.setVisibility(Button.VISIBLE);
         numOfFeatures.setVisibility(Button.VISIBLE);
-
         currentPhoto = cameraPreview.getCurrentFrame();
 
-        img1.put(0,0,currentPhoto);
-        Mat mask =Mat.zeros(img1.size(), CvType.CV_8U);  // type of mask is CV_8U
-        Mat roi = new Mat(mask, myCustomView.getRect());
-        roi.setTo(new Scalar(255, 255, 255));
-        detector.detect(img1, keypoints1, mask);
+        Mat pre = new Mat(height+height/2, width, CvType.CV_8UC1);
+        pre.put(0, 0, currentPhoto);
+        Imgproc.cvtColor(pre,img1,Imgproc.COLOR_YUV2GRAY_NV21);
+        Core.transpose(img1,img1);
+        Core.flip(img1,img1,1);
+        detector.detect(img1,keypoints1);
         descriptor.compute(img1, keypoints1, descriptors1);
-
+        Log.d("", "capture: featureNumber: " +keypoints1.toList().size());
         //counting the number of features in the original captured photo
-        matcher.match(descriptors1, descriptors1, features);
-        List<DMatch> featuresList = features.toList();
-        List<DMatch> features_final= new ArrayList<DMatch>();
-        count = 0;
-        for(int i=0; i<featuresList.size(); i++) {
-            features_final.add(features.toList().get(i));
-            count++;
-        }
-        featuresnumber = count;
-        numOfFeatures.setText("Number of features: " + featuresnumber);
+        numOfFeatures.setText("Number of features: " + keypoints1.toList().size());
+        Mat outputImage = new Mat(img1.size(),img1.type());
+        Features2d.drawKeypoints(img1,keypoints1,outputImage);
     }
-
     public void matchImages(){
         while(true) {
             if(stopTrackingNow) {
@@ -255,40 +201,37 @@ public class MainActivity extends Activity {
             }
             long startTime = System.currentTimeMillis();
             byte[] data = cameraPreview.getCurrentFrame();
-            img2.put(0, 0, data);
+            Mat pre = new Mat(height+height/2, width, CvType.CV_8UC1);
+            pre.put(0, 0, data);
+            Imgproc.cvtColor(pre,img2,Imgproc.COLOR_YUV2GRAY_NV21);
+            Core.transpose(img2,img2);
+            Core.flip(img2,img2,1);
             //resize(img2, img2, img2.size(), 0, 0, 1);
             detector.detect(img2, keypoints2);
             descriptor.compute(img2, keypoints2, descriptors2);
             //matcher should include 2 different image's descriptors
             matcher.match(descriptors1, descriptors2, matches);
-
-
             int DIST_LIMIT = 50;
             List<DMatch> matchesList = matches.toList();
             List<DMatch> matches_final= new ArrayList<DMatch>();
             PriorityQueue<DMatch> orderedmatches = new PriorityQueue<>();
             count = 0;
             for(int i = 0; i < matchesList.size(); i++) {
-                orderedmatches.add(matchesList.get(i));
+//                orderedmatches.add(matchesList.get(i));
             }
-
 //            for(int i = 0; i<4; i++) {
 //                matches_final.add(orderedmatches.poll());
 //            }
-
             for(int i = 0; i < matchesList.size(); i++) {
                 if (matchesList.get(i).distance <= DIST_LIMIT) {
                     matches_final.add(matches.toList().get(i));
                     count++;
                 }
             }
-
             Log.d("number of matches", "matchImages: "+matches_final.size());
             myCustomView.setMatches(matches_final, keypoints2);
-
 //            matchnumber = 4;
             matchnumber = count;
-
             //compute the transformation based on the matched features
             if(true) {
                 List<Point> objpoints = new ArrayList<Point>();
@@ -309,7 +252,6 @@ public class MainActivity extends Activity {
 //                h.setValues(new float[]{(float) homography.get(0,0)[0],(float) homography.get(0,1)[0],
 //(float) homography.get(0,2)[0], (float) homography.get(1,0)[0], (float) homography.get(1,1)[0],
 //(float) homography.get(1,2)[0], (float) homography.get(2,0)[0], (float) homography.get(2,1)[0], (float) homography.get(2,2)[0]});
-
                 if(homography!=null) {
                     float h[][] = new float[3][3];
                     for(int i = 0; i<3; i++) {
@@ -322,10 +264,7 @@ public class MainActivity extends Activity {
                     finalh = h;
                     myCustomView.setTransformMatrix(finalh);
                 }
-
-
 //                Log.d("finalh", "matchImages: "+finalh[0][2]);
-
                 try {
                     Thread.sleep(1);
                 } catch (InterruptedException e) {
@@ -350,7 +289,6 @@ public class MainActivity extends Activity {
                     myCustomView.invalidate();
                 }
             });
-
 //            keypoints1 = keypoints2;
 //            descriptors1 = descriptors2;
         }
@@ -363,7 +301,6 @@ public class MainActivity extends Activity {
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     cameraPermissionGranted = true;
                     init();
-
                 } else {
                     cameraPermissionGranted = false;
                     Toast.makeText(getApplicationContext(),"This app can't work without camera, BYE!", Toast.LENGTH_LONG).show();
@@ -371,24 +308,22 @@ public class MainActivity extends Activity {
                 }
                 return;
             }
-
         }
     }
-
     @Override
     protected void onResume() {
         super.onResume();
         if(cameraPermissionGranted)
-            cameraPreview.onResume();
+            cameraPreview = new CameraPreview(getApplicationContext());
+        init();
+        cameraView.addView(cameraPreview);
     }
-
     @Override
     protected void onPause() {
         super.onPause();
-        if(cameraPermissionGranted)
-            cameraPreview.onPause();
+        cameraPreview.onPause();
+        cameraView.removeView(cameraPreview);
     }
-
     public static void multiply(float[][] m1, float[][] m2, float[][] result) {
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 3; j++) {
@@ -396,6 +331,4 @@ public class MainActivity extends Activity {
             }
         }
     }
-
-
 }
