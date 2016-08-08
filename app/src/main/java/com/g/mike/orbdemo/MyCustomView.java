@@ -38,7 +38,6 @@ public class MyCustomView extends View {
     int viewWidth;
     int dx;
     int dy;
-
     org.opencv.core.Rect rectmask;
     public MyCustomView(Context context) {
         super(context);
@@ -56,15 +55,14 @@ public class MyCustomView extends View {
         mat = new Matrix();
         paint = new Paint();
         matches_final= new ArrayList<DMatch>();
-        drawingState = false;
+        drawingState = true;
         mat.setValues(new float[]{1,0,0,0,1,0,0,0,1});
-        //Paint paint =new Paint(Color.argb(100, 255, 0, 0));
         Paint paint = new Paint();
         rectWidth = 100;
-        rectHeight = 80;
-        //rectmask = new org.opencv.core.Rect(windowWidth/2 - rectWidth/2, windowHeight/2 - rectHeight/2, rectWidth, rectHeight);
-        rectmask = new org.opencv.core.Rect(0, 0, windowWidth, windowHeight);
+        rectHeight = 100;
+        rectmask = new org.opencv.core.Rect(windowWidth/2 - rectWidth/2, windowHeight/2 - rectHeight/2, rectWidth, rectHeight);
     }
+
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
@@ -77,9 +75,9 @@ public class MyCustomView extends View {
         paint.setStyle(Paint.Style.STROKE);
         paint.setColor(Color.argb(255,0,255,0));
         if(keypoints!=null) {
-            for(int i = 0; i<keypoints.toList().size()/10; i++) {
-                //canvas.drawCircle((float)keypoints.toList().get((matches_final.get(i)).queryIdx).pt.x, (float)keypoints.toList().get((matches_final.get(i)).queryIdx).pt.y, 5, new Paint(Color.GREEN));
-                canvas.drawCircle((float)keypoints.toList().get(i).pt.x+dx, (float)keypoints.toList().get(i).pt.y+dy, 5, paint);
+            for(int i = 0; i<matches_final.size()/10; i++) {
+                canvas.drawCircle((float)keypoints.toList().get((matches_final.get(i)).queryIdx).pt.x, (float)keypoints.toList().get((matches_final.get(i)).queryIdx).pt.y, 5, new Paint(Color.GREEN));
+                //canvas.drawCircle((float)keypoints.toList().get(i).pt.x+dx, (float)keypoints.toList().get(i).pt.y+dy, 5, paint);
             }
         }
         android.graphics.Rect rect = new android.graphics.Rect(windowWidth/2 - rectWidth/2, windowHeight/2 - rectHeight/2, windowWidth/2 + rectWidth/2, windowHeight/2 + rectHeight/2);
@@ -87,18 +85,36 @@ public class MyCustomView extends View {
         canvas.drawRect(rect, paint);
         //canvas.drawColor(Color.RED);
     }
+
     void setDrawingState(boolean state) {
         drawingState = state;
     }
+
     void setTransformMatrix(float[][] homography) {
         //decompose the homography
+        mat.setValues(new float[]{1,0,0,0,1,0,0,0,1});
         //mat.postTranslate(homography[0][2], homography[1][2]);
+        float[][] temp = new float[3][3];
+        float[][] ident = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
+        multiply(ident, homography, temp);
+        mat.setValues(new float[]{temp[0][0],temp[0][1],temp[0][2],temp[1][0],temp[1][1],temp[1][2],temp[2][0],temp[2][1],temp[2][2]});
+        //tempmat to mat
     }
+
     void setMatches (List<DMatch> matches_final, MatOfKeyPoint keypoints2) {
         this.matches_final = matches_final;
         this.keypoints = keypoints2;
     }
+
     org.opencv.core.Rect getRect() {
         return rectmask;
+    }
+
+    public static void multiply(float[][] m1, float[][] m2, float[][] result) {
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                result[i][j] = m1[i][0] * m2[0][j] + m1[i][1] * m2[1][j] + m1[i][2] * m2[2][j];
+            }
+        }
     }
 }

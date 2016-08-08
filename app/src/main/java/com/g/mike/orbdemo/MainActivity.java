@@ -98,23 +98,23 @@ public class MainActivity extends Activity {
             cameraPermissionGranted = false;
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, 1);
         }
-    }
-    private void init(){
+
+        //everything that does not depend on camera preview size is initialized here once
+        //ui stuff
         capture = (Button)findViewById(R.id.captureFrame);
         startTracking  = (Button)findViewById(R.id.startTracking);
         stopTracking = (Button)findViewById(R.id.stopTracking);
         cameraView = (RelativeLayout)findViewById(R.id.cameraView);
-        myCustomView = new MyCustomView(getApplicationContext());
-        width = cameraPreview.getPreviewWidth();
-        height = cameraPreview.getPreviewHeight();
         messages = (TextView)findViewById(R.id.messages);
         numOfFeatures = (TextView)findViewById(R.id.numOfFeatures);
         numOfMatches = (TextView)findViewById(R.id.numOfMatches);
         averageTimePerFrameTextView = (TextView)findViewById(R.id.averageTimePerFrame);
-
-        //GRV UI stuff
         statusTextView = (TextView)findViewById(R.id.statusTextView);
-
+        messages.setText("Capture a wall.");
+        myCustomView = new MyCustomView(getApplicationContext());
+        cameraView.addView(myCustomView);
+        //myCustomView.setVisibility(View.GONE);
+        //detector/descriptor/matcher stuff
         detector = FeatureDetector.create(FeatureDetector.ORB);
         descriptor = DescriptorExtractor.create(DescriptorExtractor.ORB);;
         matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMINGLUT);
@@ -126,7 +126,8 @@ public class MainActivity extends Activity {
         keypoints2 = new MatOfKeyPoint();
         features = new MatOfDMatch();
         matches = new MatOfDMatch();
-        messages.setText("Capture a wall.");
+        finalh = new float[][]{ new float[]{1, 0, 0}, new float[]{0, 1, 0}, new float[]{0, 0, 1}};
+        //setting listeners
         capture.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -145,23 +146,22 @@ public class MainActivity extends Activity {
                 stopTracking();
             }
         });
-//        finalHomography.setValues(new float[]{1f,0f,0f,0f,1f,0f,0f,0f,1f});
-//        float trainingData[][] = new float[][]{ new float[]{1, 0, 0}, new float[]{0, 1, 0}, new float[]{0, 0, 1}};
-//        finalHomography = new Mat(3, 3, 6);//HxW 4x2
-//        for (int i=0;i<3;i++)
-//            finalHomography.put(i,0, trainingData[i]);
-        finalh = new float[][]{ new float[]{1, 0, 0}, new float[]{0, 1, 0}, new float[]{0, 0, 1}};;
-
-        //GRV
-        grvCoordinates = new GRVCoordinates(this);
     }
+
+    private void init(){
+        cameraPreview = new CameraPreview(getApplicationContext());
+        cameraView.addView(cameraPreview);
+        width = cameraPreview.getPreviewWidth();
+        height = cameraPreview.getPreviewHeight();
+    }
+
     @Override
     protected void onStart() {
         super.onStart();
     }
+
     private void startTracking() {
-        myCustomView = new MyCustomView(getApplicationContext());
-        cameraView.addView(myCustomView);
+        //myCustomView.setVisibility(View.VISIBLE);
         if(averageTimePerFrameTextView.getVisibility() == Button.VISIBLE) {
             averageTimePerFrameTextView.setVisibility(Button.GONE);
         }
@@ -178,7 +178,9 @@ public class MainActivity extends Activity {
             }
         }.execute();
     }
+
     private void stopTracking() {
+        //myCustomView.setVisibility(View.GONE);
         messages.setText("Tracking stopped!");
         stopTrackingNow = true;
         numOfMatches.setVisibility(Button.GONE);
@@ -191,6 +193,7 @@ public class MainActivity extends Activity {
         frameCount = 0;
         cameraView.removeView(myCustomView);
     }
+
     private void capture() {
         messages.setText("Start tracking!");
         capture.setVisibility(Button.GONE);
@@ -204,7 +207,12 @@ public class MainActivity extends Activity {
         Imgproc.cvtColor(pre,img1,Imgproc.COLOR_YUV2GRAY_NV21);
         Core.transpose(img1,img1);
         Core.flip(img1,img1,1);
+//        Mat mask = Mat.zeros(img1.size(),CvType.CV_8UC1);
+//        Mat roi  = new Mat(mask,myCustomView.getRect());
+//        roi.setTo(new Scalar(255,255,255));
+//        detector.detect(img1,keypoints1,mask);
         detector.detect(img1,keypoints1);
+
         descriptor.compute(img1, keypoints1, descriptors1);
         Log.d("", "capture: featureNumber: " +keypoints1.toList().size());
         //counting the number of features in the original captured photo
@@ -214,8 +222,9 @@ public class MainActivity extends Activity {
 
         //take GRV coordinates
         grvCapturedValues = grvCoordinates.getValues();
-
+        myCustomView.invalidate();
     }
+
     public void matchImages(){
         while(true) {
             if(stopTrackingNow) {
@@ -253,7 +262,6 @@ public class MainActivity extends Activity {
             }
             Log.d("number of matches", "matchImages: "+matches_final.size());
             myCustomView.setMatches(matches_final, keypoints2);
-//            matchnumber = 4;
             matchnumber = count;
             //compute the transformation based on the matched features
             if(true) {
@@ -270,11 +278,6 @@ public class MainActivity extends Activity {
                 MatOfPoint2f scene = new MatOfPoint2f();
                 scene.fromList(scenepoints);
                 Mat homography = Calib3d.findHomography(obj, scene, RANSAC, 0.1);
-                //                Core.gemm(homography,finalHomography, 1.0, finalHomography, 0.0, null, 0);
-//                Matrix h = new Matrix();
-//                h.setValues(new float[]{(float) homography.get(0,0)[0],(float) homography.get(0,1)[0],
-//(float) homography.get(0,2)[0], (float) homography.get(1,0)[0], (float) homography.get(1,1)[0],
-//(float) homography.get(1,2)[0], (float) homography.get(2,0)[0], (float) homography.get(2,1)[0], (float) homography.get(2,2)[0]});
                 if(homography!=null) {
                     float h[][] = new float[3][3];
                     for(int i = 0; i<3; i++) {
@@ -283,11 +286,9 @@ public class MainActivity extends Activity {
                                 h[i][j] = (float)homography.get(i, j)[0];
                         }
                     }
-                    //multiply(finalh, h, finalh);
                     finalh = h;
                     myCustomView.setTransformMatrix(finalh);
                 }
-//                Log.d("finalh", "matchImages: "+finalh[0][2]);
                 try {
                     Thread.sleep(1);
                 } catch (InterruptedException e) {
@@ -312,11 +313,6 @@ public class MainActivity extends Activity {
                     myCustomView.invalidate();
                 }
             });
-//            keypoints1 = keypoints2;
-//            descriptors1 = descriptors2;
-
-
-            //GRV function
             grvChangingValues = grvCoordinates.getValues();
             matchCoordinates();
         }
@@ -368,25 +364,19 @@ public class MainActivity extends Activity {
             }
         }
     }
+
     @Override
     protected void onResume() {
         super.onResume();
-        if(cameraPermissionGranted)
-            cameraPreview = new CameraPreview(getApplicationContext());
         init();
-        cameraView.addView(cameraPreview);
+        grvCoordinates = new GRVCoordinates(this);
+        myCustomView.bringToFront();
     }
+
     @Override
     protected void onPause() {
         super.onPause();
         cameraPreview.onPause();
         cameraView.removeView(cameraPreview);
-    }
-    public static void multiply(float[][] m1, float[][] m2, float[][] result) {
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
-                result[i][j] = m1[i][0] * m2[0][j] + m1[i][1] * m2[1][j] + m1[i][2] * m2[2][j];
-            }
-        }
     }
 }

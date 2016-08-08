@@ -42,13 +42,11 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         Point displaysize = new Point();
         display.getSize(displaysize);
 
-        //        for (Camera.Size size : params.getSupportedPreviewSizes()) {
-        //  //            //if (size.width * size.height < params.getPreviewSize().width * params.getPreviewSize().height && size.width > displaysize.x/10 && size.height > displaysize.y/10) 
-        //            //if (size.width * size.height < params.getPreviewSize().width * params.getPreviewSize().height && Math.abs((double)size.width / (double)size.height - (double)displaysize.x / (double)displaysize.y) < 0.1)
-        //  //            if (size.width * size.height < params.getPreviewSize().width * params.getPreviewSize().height) {
-        //  //                params.setPreviewSize(size.width, size.height); 
-        //            } 
-        //        }
+//        for (Camera.Size size : params.getSupportedPreviewSizes()) {
+//            if (size.width * size.height < params.getPreviewSize().width * params.getPreviewSize().height) {
+//                params.setPreviewSize(size.width, size.height);
+//            }
+//        }
 
         params.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
         params.setPreviewFormat(ImageFormat.NV21);
@@ -60,6 +58,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         mHolder.addCallback(this);
         startPreview();
     }
+
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
         try {
@@ -68,10 +67,12 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
             Log.d("CameraPreview", "Error setting camera preview: " + e.getMessage());
         }
     }
+
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
         mCamera.release();
     }
+
     @Override
     public void surfaceChanged(SurfaceHolder holder, int format, int w, int h) {
 //        mCamera.stopPreview();
@@ -83,10 +84,12 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 //            Log.d("CameraPreview", "Error starting camera preview: " + e.getMessage());
 //        }
     }
+
     @Override
     public void onPreviewFrame(byte[] bytes, Camera camera) {
         data = bytes;
     }
+
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
@@ -98,6 +101,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 //        lp.width = mCamera.getParameters().getPreviewSize().height;
         setLayoutParams(lp);
     }
+
     void startPreview() {
         mCamera.startPreview();
     }
@@ -111,13 +115,13 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     List<Integer> getSupportedPreiewFormats(){
         return mCamera.getParameters().getSupportedPreviewFormats();
     }
+
     void setTrueLocation (boolean truelocation) {
         trueLocation = truelocation;
     }
+
     void onPause() {
         mCamera.stopPreview();
         mCamera.release();
-    }
-    void onResume() {
     }
 }
