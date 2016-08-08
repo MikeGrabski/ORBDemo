@@ -14,6 +14,7 @@
         android:layout_weight="90"
         android:background="#ff000000"
         android:foregroundGravity="center_vertical|center_horizontal">
+
     </RelativeLayout>
 
     <LinearLayout
@@ -99,6 +100,18 @@
         android:layout_alignParentRight="true"
         android:gravity="center_vertical|center_horizontal"
         android:background="#55ffffff"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="Large Text"
+        android:id="@+id/statusTextView"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginBottom="58dp"
+        android:textColor="#0c1d8f" />
 
 
 </RelativeLayout>

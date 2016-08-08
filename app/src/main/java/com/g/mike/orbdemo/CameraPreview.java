@@ -41,13 +41,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         Display display = wm.getDefaultDisplay();
         Point displaysize = new Point();
         display.getSize(displaysize);
-        for (Camera.Size size : params.getSupportedPreviewSizes()) {
-            //if (size.width * size.height < params.getPreviewSize().width * params.getPreviewSize().height && size.width > displaysize.x/10 && size.height > displaysize.y/10)
-            //if (size.width * size.height < params.getPreviewSize().width * params.getPreviewSize().height && Math.abs((double)size.width / (double)size.height - (double)displaysize.x / (double)displaysize.y) < 0.1)
-            if (size.width * size.height < params.getPreviewSize().width * params.getPreviewSize().height) {
-                params.setPreviewSize(size.width, size.height);
-            }
-        }
+//]
         params.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
         params.setPreviewFormat(ImageFormat.NV21);
         mCamera.setParameters(params);

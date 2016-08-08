@@ -3,6 +3,8 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.pm.PackageManager;
 import android.graphics.ImageFormat;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
@@ -47,6 +49,8 @@ public class MainActivity extends Activity {
     TextView averageTimePerFrameTextView;
     TextView numOfFeatures;
     TextView messages;
+    //Needed for GRV
+    TextView statusTextView;
     //Needed for matching
     byte[] currentPhoto;
     int width;
@@ -74,6 +78,12 @@ public class MainActivity extends Activity {
     private List<Mat> normals;
     private List<Mat> translations;
     float finalh[][];
+
+    //for GRV 
+    private float[] grvCapturedValues = new float[3];
+    private float[] grvChangingValues = new float[3];
+    private GRVCoordinates grvCoordinates;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -101,6 +111,10 @@ public class MainActivity extends Activity {
         numOfFeatures = (TextView)findViewById(R.id.numOfFeatures);
         numOfMatches = (TextView)findViewById(R.id.numOfMatches);
         averageTimePerFrameTextView = (TextView)findViewById(R.id.averageTimePerFrame);
+
+        //GRV UI stuff
+        statusTextView = (TextView)findViewById(R.id.statusTextView);
+
         detector = FeatureDetector.create(FeatureDetector.ORB);
         descriptor = DescriptorExtractor.create(DescriptorExtractor.ORB);;
         matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMINGLUT);
@@ -137,6 +151,9 @@ public class MainActivity extends Activity {
 //        for (int i=0;i<3;i++)
 //            finalHomography.put(i,0, trainingData[i]);
         finalh = new float[][]{ new float[]{1, 0, 0}, new float[]{0, 1, 0}, new float[]{0, 0, 1}};;
+
+        //GRV
+        grvCoordinates = new GRVCoordinates(this);
     }
     @Override
     protected void onStart() {
@@ -151,6 +168,8 @@ public class MainActivity extends Activity {
         numOfMatches.setVisibility(Button.VISIBLE);
         startTracking.setVisibility(Button.GONE);
         stopTracking.setVisibility(Button.VISIBLE);
+
+
         new AsyncTask<Void,Void,Integer>(){
             @Override
             protected Integer doInBackground(Void... voids) {
@@ -192,6 +211,10 @@ public class MainActivity extends Activity {
         numOfFeatures.setText("Number of features: " + keypoints1.toList().size());
         Mat outputImage = new Mat(img1.size(),img1.type());
         Features2d.drawKeypoints(img1,keypoints1,outputImage);
+
+        //take GRV coordinates
+        grvCapturedValues = grvCoordinates.getValues();
+
     }
     public void matchImages(){
         while(true) {
@@ -291,8 +314,43 @@ public class MainActivity extends Activity {
             });
 //            keypoints1 = keypoints2;
 //            descriptors1 = descriptors2;
+
+
+            //GRV function
+            grvChangingValues = grvCoordinates.getValues();
+            matchCoordinates();
         }
     }
+
+    private void matchCoordinates() {
+        final String status;
+        if(Math.abs((grvChangingValues[1] + 0.7) - (grvCapturedValues[1] + 0.7)) > 0.00
+                && Math.abs((grvChangingValues[1] + 0.7) - (grvCapturedValues[1] + 0.7)) <= 0.04) {
+            status = "Here";
+        }
+        else if(Math.abs((grvChangingValues[1] + 0.7) - (grvCapturedValues[1] + 0.7)) > 0.04
+                && Math.abs((grvChangingValues[1] + 0.7) - (grvCapturedValues[1] + 0.7)) <= 0.09) {
+            status = "Almost here";
+        }
+        else {
+            status = "Turn Around";
+        }
+
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                statusTextView.setText(status);
+            }
+        });
+
+        try {
+            Thread.sleep(10);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+    }
+
     @Override
     public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
         switch (requestCode) {
