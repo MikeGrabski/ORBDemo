@@ -36,6 +36,9 @@ public class MyCustomView extends View {
     int rectHeight;
     int viewHeight;
     int viewWidth;
+    int dx;
+    int dy;
+
     org.opencv.core.Rect rectmask;
     public MyCustomView(Context context) {
         super(context);
@@ -48,12 +51,15 @@ public class MyCustomView extends View {
         windowWidth = displaysize.x;
         viewHeight = getHeight();
         viewWidth = getWidth();
+        dx = (windowWidth - viewWidth)/2;
+        dy = (windowHeight - viewHeight)/2;
         mat = new Matrix();
         paint = new Paint();
         matches_final= new ArrayList<DMatch>();
         drawingState = false;
         mat.setValues(new float[]{1,0,0,0,1,0,0,0,1});
-        Paint paint =new Paint(Color.argb(100, 255, 0, 0));
+        //Paint paint =new Paint(Color.argb(100, 255, 0, 0));
+        Paint paint = new Paint();
         rectWidth = 100;
         rectHeight = 80;
         //rectmask = new org.opencv.core.Rect(windowWidth/2 - rectWidth/2, windowHeight/2 - rectHeight/2, rectWidth, rectHeight);
@@ -73,7 +79,7 @@ public class MyCustomView extends View {
         if(keypoints!=null) {
             for(int i = 0; i<keypoints.toList().size()/10; i++) {
                 //canvas.drawCircle((float)keypoints.toList().get((matches_final.get(i)).queryIdx).pt.x, (float)keypoints.toList().get((matches_final.get(i)).queryIdx).pt.y, 5, new Paint(Color.GREEN));
-                canvas.drawCircle((float)keypoints.toList().get(i).pt.x+30, (float)keypoints.toList().get(i).pt.y+280, 5, paint);
+                canvas.drawCircle((float)keypoints.toList().get(i).pt.x+dx, (float)keypoints.toList().get(i).pt.y+dy, 5, paint);
             }
         }
         android.graphics.Rect rect = new android.graphics.Rect(windowWidth/2 - rectWidth/2, windowHeight/2 - rectHeight/2, windowWidth/2 + rectWidth/2, windowHeight/2 + rectHeight/2);
