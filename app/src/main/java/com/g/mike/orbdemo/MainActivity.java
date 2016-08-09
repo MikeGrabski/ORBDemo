@@ -35,6 +35,8 @@ import org.opencv.imgproc.Imgproc;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.PriorityQueue;
+import java.util.concurrent.RunnableFuture;
+
 import static org.opencv.calib3d.Calib3d.RANSAC;
 public class MainActivity extends Activity {
     //Views
@@ -146,52 +148,8 @@ public class MainActivity extends Activity {
                 stopTracking();
             }
         });
-    }
-
-    private void init(){
-        cameraPreview = new CameraPreview(getApplicationContext());
-        cameraView.addView(cameraPreview);
-        width = cameraPreview.getPreviewWidth();
-        height = cameraPreview.getPreviewHeight();
-    }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-    }
-
-    private void startTracking() {
-        //myCustomView.setVisibility(View.VISIBLE);
-        if(averageTimePerFrameTextView.getVisibility() == Button.VISIBLE) {
-            averageTimePerFrameTextView.setVisibility(Button.GONE);
-        }
-        numOfMatches.setVisibility(Button.VISIBLE);
-        startTracking.setVisibility(Button.GONE);
-        stopTracking.setVisibility(Button.VISIBLE);
-
-
-        new AsyncTask<Void,Void,Integer>(){
-            @Override
-            protected Integer doInBackground(Void... voids) {
-                matchImages();
-                return  null;
-            }
-        }.execute();
-    }
-
-    private void stopTracking() {
-        //myCustomView.setVisibility(View.GONE);
-        messages.setText("Tracking stopped!");
-        stopTrackingNow = true;
-        numOfMatches.setVisibility(Button.GONE);
-        numOfFeatures.setVisibility(Button.GONE);
-        stopTracking.setVisibility(Button.GONE);
-        capture.setVisibility(Button.VISIBLE);
-        averageTimePerFrameTextView.setVisibility(Button.VISIBLE);
-        averageTimePerFrameTextView.setText("Avg Time per Frame: "+(double)elapsedTime / (double)frameCount + " ms");
-        elapsedTime = 0;
-        frameCount = 0;
-        cameraView.removeView(myCustomView);
+        //grv coordinates
+        grvCoordinates = new GRVCoordinates(this);
     }
 
     private void capture() {
@@ -217,20 +175,49 @@ public class MainActivity extends Activity {
         Log.d("", "capture: featureNumber: " +keypoints1.toList().size());
         //counting the number of features in the original captured photo
         numOfFeatures.setText("Number of features: " + keypoints1.toList().size());
-        Mat outputImage = new Mat(img1.size(),img1.type());
-        Features2d.drawKeypoints(img1,keypoints1,outputImage);
 
         //take GRV coordinates
         grvCapturedValues = grvCoordinates.getValues();
+        //myCustomView.invalidate();
+    }
+
+    private void startTracking() {
+        myCustomView.setTrackingState(true);
+        if(averageTimePerFrameTextView.getVisibility() == Button.VISIBLE) {
+            averageTimePerFrameTextView.setVisibility(Button.GONE);
+        }
+        numOfMatches.setVisibility(Button.VISIBLE);
+        startTracking.setVisibility(Button.GONE);
+        stopTracking.setVisibility(Button.VISIBLE);
+
+        new AsyncTask<Void,Void,Integer>(){
+            @Override
+            protected Integer doInBackground(Void... voids) {
+                matchImages();
+                return  null;
+            }
+        }.execute();
+    }
+
+    private void stopTracking() {
+        myCustomView.setTrackingState(false);
+        messages.setText("Tracking stopped!");
+        numOfMatches.setVisibility(Button.GONE);
+        numOfFeatures.setVisibility(Button.GONE);
+        stopTracking.setVisibility(Button.GONE);
+        capture.setVisibility(Button.VISIBLE);
+        averageTimePerFrameTextView.setVisibility(Button.VISIBLE);
+        averageTimePerFrameTextView.setText("Avg Time per Frame: "+(double)elapsedTime / (double)frameCount + " ms");
+        elapsedTime = 0;
+        frameCount = 0;
+        finalh = new float[][]{{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
+        myCustomView.resetView();
         myCustomView.invalidate();
+        myCustomView.bringToFront();
     }
 
     public void matchImages(){
         while(true) {
-            if(stopTrackingNow) {
-                stopTrackingNow = false;
-                break;
-            }
             long startTime = System.currentTimeMillis();
             byte[] data = cameraPreview.getCurrentFrame();
             Mat pre = new Mat(height+height/2, width, CvType.CV_8UC1);
@@ -238,37 +225,39 @@ public class MainActivity extends Activity {
             Imgproc.cvtColor(pre,img2,Imgproc.COLOR_YUV2GRAY_NV21);
             Core.transpose(img2,img2);
             Core.flip(img2,img2,1);
-            //resize(img2, img2, img2.size(), 0, 0, 1);
             detector.detect(img2, keypoints2);
             descriptor.compute(img2, keypoints2, descriptors2);
-            //matcher should include 2 different image's descriptors
             matcher.match(descriptors1, descriptors2, matches);
+
+            //choosing good matches
             int DIST_LIMIT = 50;
+            count = 0;
             List<DMatch> matchesList = matches.toList();
             List<DMatch> matches_final= new ArrayList<DMatch>();
-            PriorityQueue<DMatch> orderedmatches = new PriorityQueue<>();
-            count = 0;
+            float[][] imagedata = myCustomView.getImageXYWH();
+            List<KeyPoint> keys1 = keypoints1.toList();
+            List<KeyPoint> keys2 = keypoints2.toList();
             for(int i = 0; i < matchesList.size(); i++) {
-//                orderedmatches.add(matchesList.get(i));
-            }
-//            for(int i = 0; i<4; i++) {
-//                matches_final.add(orderedmatches.poll());
-//            }
-            for(int i = 0; i < matchesList.size(); i++) {
-                if (matchesList.get(i).distance <= DIST_LIMIT) {
+                if (matchesList.get(i).distance <= DIST_LIMIT && Math.sqrt(Math.pow(keys1.get((matches_final.get(i)).queryIdx).pt.x - imagedata[0][0], 2) + Math.pow(keys1.get((matches_final.get(i)).queryIdx).pt.y - imagedata[0][1], 2)) < imagedata[0][2]) {
                     matches_final.add(matches.toList().get(i));
                     count++;
                 }
             }
-            Log.d("number of matches", "matchImages: "+matches_final.size());
+
+//            PriorityQueue<DMatch> orderedmatches = new PriorityQueue<>();
+//            for(int i = 0; i < matchesList.size(); i++) {
+////                orderedmatches.add(matchesList.get(i));
+//            }
+////            for(int i = 0; i<4; i++) {
+////                matches_final.add(orderedmatches.poll());
+////            }
+            Log.d("number of matches", "matchImages: " + matches_final.size());
             myCustomView.setMatches(matches_final, keypoints2);
             matchnumber = count;
             //compute the transformation based on the matched features
             if(true) {
                 List<Point> objpoints = new ArrayList<Point>();
                 List<Point> scenepoints = new ArrayList<Point>();
-                List<KeyPoint> keys1 = keypoints1.toList();
-                List<KeyPoint> keys2 = keypoints2.toList();
                 for(int i=0; i < matches_final.size(); i++) {
                     objpoints.add(keys1.get((matches_final.get(i)).queryIdx).pt);
                     scenepoints.add(keys2.get((matches_final.get(i)).trainIdx).pt);
@@ -287,7 +276,13 @@ public class MainActivity extends Activity {
                         }
                     }
                     finalh = h;
-                    myCustomView.setTransformMatrix(finalh);
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            myCustomView.setTransformMatrix(finalh);
+                            myCustomView.invalidate();
+                        }
+                    });
                 }
                 try {
                     Thread.sleep(1);
@@ -301,16 +296,12 @@ public class MainActivity extends Activity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    Log.d("", "run: runonui thread");
                     numOfMatches.setText("Number of Matches: " + matchnumber);
                     if(matchnumber > featuresnumber * 0/10) {
                         messages.setText("VERY CLOSE!");
-                        myCustomView.setDrawingState(true);
                     } else {
                         messages.setText("NOT CLOSE!");
-                        myCustomView.setDrawingState(false);
                     }
-                    myCustomView.invalidate();
                 }
             });
             grvChangingValues = grvCoordinates.getValues();
@@ -351,10 +342,8 @@ public class MainActivity extends Activity {
     public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
         switch (requestCode) {
             case 1: {
-                if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     cameraPermissionGranted = true;
-                    init();
                 } else {
                     cameraPermissionGranted = false;
                     Toast.makeText(getApplicationContext(),"This app can't work without camera, BYE!", Toast.LENGTH_LONG).show();
@@ -368,8 +357,10 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        init();
-        grvCoordinates = new GRVCoordinates(this);
+        cameraPreview = new CameraPreview(getApplicationContext());
+        cameraView.addView(cameraPreview);
+        width = cameraPreview.getPreviewWidth();
+        height = cameraPreview.getPreviewHeight();
         myCustomView.bringToFront();
     }
 

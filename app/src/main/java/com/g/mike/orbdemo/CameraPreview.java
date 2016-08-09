@@ -27,7 +27,6 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     private SurfaceHolder mHolder;
     private Camera mCamera;
     private byte[] data;
-    private boolean trueLocation = false;
     private Camera.Parameters params;
     private Context mContext;
     public CameraPreview(Context context) {
@@ -105,19 +104,15 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     void startPreview() {
         mCamera.startPreview();
     }
+
     byte[] getCurrentFrame() {
         return data;
     }
+
     int getPreviewHeight() { return mCamera.getParameters().getPreviewSize().height; }
+
     int getPreviewWidth() {
         return mCamera.getParameters().getPreviewSize().width;
-    }
-    List<Integer> getSupportedPreiewFormats(){
-        return mCamera.getParameters().getSupportedPreviewFormats();
-    }
-
-    void setTrueLocation (boolean truelocation) {
-        trueLocation = truelocation;
     }
 
     void onPause() {
