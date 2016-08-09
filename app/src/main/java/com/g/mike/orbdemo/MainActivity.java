@@ -5,6 +5,7 @@ import android.content.pm.PackageManager;
 import android.graphics.ImageFormat;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
+import android.location.Location;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
@@ -84,6 +85,14 @@ public class MainActivity extends Activity {
     private float[] grvChangingValues = new float[3];
     private GRVCoordinates grvCoordinates;
 
+
+    //for GPS
+    private GPSTracker mGPSTracker;
+    private boolean gpsPermissionGranted = false;
+
+    Location currentLocationm = null;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -94,10 +103,24 @@ public class MainActivity extends Activity {
         if(permissionCheck == PackageManager.PERMISSION_GRANTED){
             cameraPermissionGranted = true;
         }
-        else if(permissionCheck == PackageManager.PERMISSION_DENIED){
+        else if(permissionCheck != PackageManager.PERMISSION_GRANTED){
             cameraPermissionGranted = false;
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, 1);
         }
+        if(ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)==PackageManager.PERMISSION_GRANTED){
+            gpsPermissionGranted = true;
+            mGPSTracker = new GPSTracker(this);
+
+        }
+        else if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    2);
+        }
+
+
     }
     private void init(){
         capture = (Button)findViewById(R.id.captureFrame);
@@ -198,6 +221,19 @@ public class MainActivity extends Activity {
         startTracking.setVisibility(Button.VISIBLE);
         numOfFeatures.setVisibility(Button.VISIBLE);
         currentPhoto = cameraPreview.getCurrentFrame();
+
+        if(mGPSTracker.canGetLocation()){
+            currentLocationm = mGPSTracker.getLocation();
+            Toast.makeText(this.getApplicationContext(),"Lat: " + currentLocationm.getLatitude() + " Lng: " + currentLocationm.getLongitude()
+                    +"Accuracy: " + (int)currentLocationm.getAccuracy()+"m. " + "Provider: " + mGPSTracker.getProvider()  , Toast.LENGTH_LONG).show();
+
+        }
+        else{
+            Toast.makeText(this.getApplicationContext(),"dfuq, no location!", Toast.LENGTH_LONG).show();
+
+            mGPSTracker.showSettingsAlert();
+        }
+
 
         Mat pre = new Mat(height+height/2, width, CvType.CV_8UC1);
         pre.put(0, 0, currentPhoto);
@@ -366,6 +402,18 @@ public class MainActivity extends Activity {
                 }
                 return;
             }
+            case 2: {
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    gpsPermissionGranted = true;
+                    mGPSTracker = new GPSTracker(this);
+                } else {
+                    cameraPermissionGranted = false;
+                    Toast.makeText(getApplicationContext(),"This app can't work without GPS, BYE!", Toast.LENGTH_LONG).show();
+                    finish();
+                }
+                return;
+            }
         }
     }
     @Override
@@ -375,13 +423,21 @@ public class MainActivity extends Activity {
             cameraPreview = new CameraPreview(getApplicationContext());
         init();
         cameraView.addView(cameraPreview);
+
     }
     @Override
     protected void onPause() {
-        super.onPause();
         cameraPreview.onPause();
         cameraView.removeView(cameraPreview);
+        super.onPause();
     }
+
+    @Override
+    protected void onStop() {
+        mGPSTracker.stopUsingGPS();
+        super.onStop();
+    }
+
     public static void multiply(float[][] m1, float[][] m2, float[][] result) {
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 3; j++) {

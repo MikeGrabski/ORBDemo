@@ -27,6 +27,7 @@ public class MyCustomView extends View {
     private Bitmap image;
     private Paint paint;
     private Matrix mat;
+
     boolean drawingState;
     List<DMatch> matches_final;
     MatOfKeyPoint keypoints;
@@ -49,6 +50,7 @@ public class MyCustomView extends View {
         viewHeight = getHeight();
         viewWidth = getWidth();
         mat = new Matrix();
+
         paint = new Paint();
         matches_final= new ArrayList<DMatch>();
         drawingState = false;
@@ -85,6 +87,9 @@ public class MyCustomView extends View {
         drawingState = state;
     }
     void setTransformMatrix(float[][] homography) {
+        float a[] = new float[9];
+        mat.getValues(a);
+
         //decompose the homography
         //mat.postTranslate(homography[0][2], homography[1][2]);
     }
