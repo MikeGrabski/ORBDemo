@@ -70,10 +70,10 @@ public class MyCustomView extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         canvas.setMatrix(mat);
-//        image = BitmapFactory.decodeResource(getResources(), R.drawable.square);
-//        if(drawingState) {
-//            canvas.drawBitmap(image, mat, paint);
-//        }
+        image = BitmapFactory.decodeResource(getResources(), R.drawable.penguin);
+        if(true) {
+            canvas.drawBitmap(image, 500, 1000, paint);
+        }
         paint.setStyle(Paint.Style.STROKE);
         paint.setColor(Color.argb(255,0,255,0));
 //        if(keypoints!=null) {
@@ -107,7 +107,7 @@ public class MyCustomView extends View {
         return rectmask;
     }
 
-    float[][] getImageXYWH() {
+    float[][] getImageXYDist() {
         float[][] arr = new float[1][3];
         arr[0][0] = rect.centerX();
         arr[0][1] = rect.centerY();
@@ -126,12 +126,27 @@ public class MyCustomView extends View {
         return transformedCoords;
     }
 
+//    public static void multiply(float[][] m1, float[][] m2, float[][] result) {
+//        for (int i = 0; i < 3; i++) {
+//            for (int j = 0; j < 3; j++) {
+//                result[i][j] = m1[i][0] * m2[0][j] + m1[i][1] * m2[1][j] + m1[i][2] * m2[2][j];
+//            }
+//        }
+//    }
+
     public static void multiply(float[][] m1, float[][] m2, float[][] result) {
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
-                result[i][j] = m1[i][0] * m2[0][j] + m1[i][1] * m2[1][j] + m1[i][2] * m2[2][j];
+        int m1ColLength = m1[0].length; // m1 columns length
+        int mRRowLength = m1.length;    // m result rows length
+        int mRColLength = m2[0].length; // m result columns length
+        float[][] mResult = new float[mRRowLength][mRColLength];
+        for(int i = 0; i < mRRowLength; i++) {         // rows from m1
+            for(int j = 0; j < mRColLength; j++) {     // columns from m2
+                for(int k = 0; k < m1ColLength; k++) { // columns from m1
+                    result[i][j] += m1[i][k] * m2[k][j];
+                }
             }
         }
+        result = mResult;
     }
 
     void resetView() {

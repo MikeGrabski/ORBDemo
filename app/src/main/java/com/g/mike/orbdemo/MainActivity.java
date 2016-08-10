@@ -27,6 +27,7 @@ import org.opencv.core.MatOfKeyPoint;
 import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
 import org.opencv.core.Scalar;
+import org.opencv.core.Size;
 import org.opencv.features2d.DescriptorExtractor;
 import org.opencv.features2d.DescriptorMatcher;
 import org.opencv.features2d.FeatureDetector;
@@ -118,7 +119,7 @@ public class MainActivity extends Activity {
         //myCustomView.setVisibility(View.GONE);
         //detector/descriptor/matcher stuff
         detector = FeatureDetector.create(FeatureDetector.ORB);
-        descriptor = DescriptorExtractor.create(DescriptorExtractor.ORB);;
+        descriptor = DescriptorExtractor.create(DescriptorExtractor.ORB);
         matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMINGLUT);
         img1 = new Mat(height+height/2, width, CvType.CV_8UC1);
         img2 = new Mat(height+height/2, width, CvType.CV_8UC1);
@@ -170,7 +171,6 @@ public class MainActivity extends Activity {
 //        roi.setTo(new Scalar(255,255,255));
 //        detector.detect(img1,keypoints1,mask);
         detector.detect(img1,keypoints1);
-
         descriptor.compute(img1, keypoints1, descriptors1);
         Log.d("", "capture: featureNumber: " +keypoints1.toList().size());
         //counting the number of features in the original captured photo
@@ -230,15 +230,23 @@ public class MainActivity extends Activity {
             matcher.match(descriptors1, descriptors2, matches);
 
             //choosing good matches
-            int DIST_LIMIT = 50;
+            int DIST_LIMIT = 10;
             count = 0;
             List<DMatch> matchesList = matches.toList();
             List<DMatch> matches_final= new ArrayList<DMatch>();
-            float[][] imagedata = myCustomView.getImageXYWH();
+            float[][] imagedata = myCustomView.getImageXYDist();
             List<KeyPoint> keys1 = keypoints1.toList();
             List<KeyPoint> keys2 = keypoints2.toList();
+            float meanDist;
+            int sum = 0;
             for(int i = 0; i < matchesList.size(); i++) {
-                if (matchesList.get(i).distance <= DIST_LIMIT && Math.sqrt(Math.pow(keys1.get((matches_final.get(i)).queryIdx).pt.x - imagedata[0][0], 2) + Math.pow(keys1.get((matches_final.get(i)).queryIdx).pt.y - imagedata[0][1], 2)) < imagedata[0][2]) {
+                sum += Math.sqrt(Math.pow(keys1.get((matchesList.get(i)).queryIdx).pt.x - keys2.get((matchesList.get(i)).trainIdx).pt.x, 2) + Math.pow(keys1.get((matchesList.get(i)).queryIdx).pt.y - keys2.get((matchesList.get(i)).trainIdx).pt.y, 2));
+            }
+            meanDist = sum/matchesList.size();
+            for(int i = 0; i < matchesList.size(); i++) {
+//                if (matchesList.get(i).distance <= DIST_LIMIT && Math.abs(Math.sqrt(Math.pow(keys1.get((matchesList.get(i)).queryIdx).pt.x - keys2.get((matchesList.get(i)).trainIdx).pt.x, 2) + Math.pow(keys1.get((matchesList.get(i)).queryIdx).pt.y - keys2.get((matchesList.get(i)).trainIdx).pt.y, 2)) - meanDist) < 10) {
+                if (matchesList.get(i).distance <= DIST_LIMIT) {
+//                if (matchesList.get(i).distance <= DIST_LIMIT && Math.sqrt(Math.pow(keys1.get((matches_final.get(i)).queryIdx).pt.x - imagedata[0][0], 2) + Math.pow(keys1.get((matches_final.get(i)).queryIdx).pt.y - imagedata[0][1], 2)) < imagedata[0][2]) {
                     matches_final.add(matches.toList().get(i));
                     count++;
                 }
