@@ -13,9 +13,15 @@
         android:layout_centerHorizontal="true" />
     <ImageView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:id="@+id/image"
-        android:layout_alignParentTop="true"
-        android:layout_above="@id/chooseImage"
         />
+
+    <FrameLayout
+        android:id="@+id/cameraView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"/>
+
+
+
 </RelativeLayout>
